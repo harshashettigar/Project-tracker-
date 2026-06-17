@@ -17,6 +17,9 @@ export default function TaskEditor({ task, targetRequired, index, count, onMove,
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [composing, setComposing] = useState(false);
+  const [editingLatest, setEditingLatest] = useState(false);
+
+  const latest = task.updates[0];
 
   const dirty =
     name !== task.name ||
@@ -40,6 +43,7 @@ export default function TaskEditor({ task, targetRequired, index, count, onMove,
       await reload();
     } catch (e) {
       setError(e.message || 'Could not save.');
+    } finally {
       setBusy(false);
     }
   }
@@ -52,6 +56,7 @@ export default function TaskEditor({ task, targetRequired, index, count, onMove,
       await reload();
     } catch (e) {
       setError(e.message || 'Could not remove.');
+    } finally {
       setBusy(false);
     }
   }
@@ -59,6 +64,14 @@ export default function TaskEditor({ task, targetRequired, index, count, onMove,
   async function postUpdate(body) {
     await api.postUpdate(task.id, body);
     await reload();
+  }
+
+  // Correct the latest update in place (§13, amended). Server + RLS allow this
+  // for the newest update only; prior history stays untouched.
+  async function editLatest(body) {
+    await api.editUpdate(latest.id, body);
+    await reload();
+    setEditingLatest(false);
   }
 
   return (
@@ -121,9 +134,30 @@ export default function TaskEditor({ task, targetRequired, index, count, onMove,
             Save
           </button>
         )}
-        <button type="button" className="ghost-button small" disabled={busy} onClick={() => setComposing((v) => !v)}>
+        <button
+          type="button"
+          className="ghost-button small"
+          disabled={busy}
+          onClick={() => {
+            setEditingLatest(false);
+            setComposing((v) => !v);
+          }}
+        >
           {composing ? 'Close' : 'Add update'}
         </button>
+        {latest && (
+          <button
+            type="button"
+            className="ghost-button small"
+            disabled={busy}
+            onClick={() => {
+              setComposing(false);
+              setEditingLatest((v) => !v);
+            }}
+          >
+            {editingLatest ? 'Close' : 'Edit latest update'}
+          </button>
+        )}
         <button type="button" className="danger-button small" disabled={busy} onClick={remove}>
           Remove
         </button>
@@ -131,9 +165,19 @@ export default function TaskEditor({ task, targetRequired, index, count, onMove,
 
       {composing && (
         <UpdateComposer
-          latestBody={task.updates[0]?.body || ''}
+          latestBody={latest?.body || ''}
           onPost={postUpdate}
           onCancel={() => setComposing(false)}
+        />
+      )}
+
+      {editingLatest && latest && (
+        <UpdateComposer
+          latestBody={latest.body}
+          onPost={editLatest}
+          onCancel={() => setEditingLatest(false)}
+          submitLabel="Save update"
+          busyLabel="Saving…"
         />
       )}
 

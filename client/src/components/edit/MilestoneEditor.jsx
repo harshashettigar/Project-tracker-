@@ -31,6 +31,7 @@ export default function MilestoneEditor({ projectId, milestone, index, count, on
       await reload();
     } catch (e) {
       setError(e.message || 'Could not save.');
+    } finally {
       setBusy(false);
     }
   }
@@ -43,6 +44,7 @@ export default function MilestoneEditor({ projectId, milestone, index, count, on
       await reload();
     } catch (e) {
       setError(e.message || 'Could not remove.');
+    } finally {
       setBusy(false);
     }
   }

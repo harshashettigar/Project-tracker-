@@ -42,6 +42,7 @@ export default function SummaryEditor({ project, users, reload }) {
       await reload();
     } catch (e) {
       setError(e.message || 'Could not save.');
+    } finally {
       setBusy(false);
     }
   }

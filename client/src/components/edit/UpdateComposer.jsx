@@ -4,7 +4,13 @@
 
 import { useState } from 'react';
 
-export default function UpdateComposer({ latestBody = '', onPost, onCancel }) {
+export default function UpdateComposer({
+  latestBody = '',
+  onPost,
+  onCancel,
+  submitLabel = 'Post update',
+  busyLabel = 'Posting…',
+}) {
   const [text, setText] = useState(latestBody);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -20,9 +26,9 @@ export default function UpdateComposer({ latestBody = '', onPost, onCancel }) {
       await onPost(text.trim());
     } catch (e) {
       setError(e.message || 'Could not post the update.');
+    } finally {
       setBusy(false);
     }
-    // On success the parent reloads the detail, unmounting this composer.
   }
 
   return (
@@ -45,7 +51,7 @@ export default function UpdateComposer({ latestBody = '', onPost, onCancel }) {
           Cancel
         </button>
         <button type="button" className="primary-button" onClick={post} disabled={busy}>
-          {busy ? 'Posting…' : 'Post update'}
+          {busy ? busyLabel : submitLabel}
         </button>
       </div>
     </div>

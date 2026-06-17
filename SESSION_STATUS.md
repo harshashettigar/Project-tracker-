@@ -3,8 +3,8 @@
 > **Read this first, write it last.** It is the handoff between sessions.
 > Keep it short. Move durable facts to `CLAUDE.md`; keep only what's moving here.
 
-**Last updated:** 2026-06-17 (Phase 9 complete — v1 build order finished, merged to `main`)
-**Current phase:** v1 build order complete. No phase in flight.
+**Last updated:** 2026-06-17 (post-v1 fixes: stuck save buttons + editable latest update)
+**Current phase:** v1 build order complete. No phase in flight; post-v1 fixes landed.
 
 ---
 
@@ -112,6 +112,15 @@ _None queued._ v1 build order is complete. Candidate follow-ups if work continue
 
 ## Session log (newest first)
 
+- **2026-06-17 (post-v1)** — Two fixes on `feature/update-edit`, merged to `main`.
+  (1) Stuck save buttons: `setBusy(false)` only ran on error in SummaryEditor,
+  MilestoneEditor, TaskEditor, UpdateComposer — moved to `finally`. (2) Editable
+  latest task update (user-approved amendment to §13 append-only, latest entry
+  only): migration `20260617100000_editable_latest_update.sql` (RLS
+  `task_updates_update_latest` + `is_latest_task_update()` definer helper, applied
+  over HTTPS), `PATCH /api/updates/:id`, "Edit latest update" UI. Verified in
+  browser: in-place overwrite (entry count unchanged), non-latest edit → 403,
+  prior history immutable. Decisions + schema mirror updated.
 - **2026-06-17** — Built Phase 9 (Hardening): migration `…091000_hardening.sql`
   (viewer-exclude on projects INSERT via `can_create_projects()`; `security_invoker`
   on `project_target_dates`), applied over HTTPS and verified at the DB; added
