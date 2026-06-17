@@ -30,6 +30,7 @@ async function request(method, path, body) {
 
 export const api = {
   listProjects: () => request('GET', '/api/projects').then((d) => d.projects),
+  getProject: (id) => request('GET', `/api/projects/${id}`),
   createProject: (payload) => request('POST', '/api/projects', payload).then((d) => d.project),
   listUsers: () => request('GET', '/api/users').then((d) => d.users),
 };

@@ -7,7 +7,9 @@ import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../auth/AuthProvider.jsx';
 import { initials } from '../lib/format.js';
 
-export default function AppShell({ actions = null, children }) {
+// `title` overrides the default product title (e.g. the project-name breadcrumb
+// on detail screens, §7.1); omit it on the list/admin screens.
+export default function AppShell({ actions = null, title = null, children }) {
   const { profile, signOut } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
@@ -38,7 +40,7 @@ export default function AppShell({ actions = null, children }) {
           <span className="topbar-mark" aria-hidden="true">
             PT
           </span>
-          <span>Project Tracker</span>
+          {title ?? <span>Project Tracker</span>}
         </div>
 
         <div className="topbar-right">

@@ -549,3 +549,293 @@ body {
   gap: 0.6rem;
   margin-top: 0.5rem;
 }
+
+/* ---- project detail (PRD §10) ------------------------------------------- */
+
+/* Breadcrumb in the top bar (§7.1). */
+.breadcrumb {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-weight: 600;
+}
+
+.crumb-link {
+  background: none;
+  border: none;
+  color: #cdd9e6;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+}
+
+.crumb-link:hover {
+  color: #fff;
+  text-decoration: underline;
+}
+
+.crumb-sep {
+  color: #7e93ab;
+}
+
+.crumb-current {
+  color: #fff;
+}
+
+/* View / Edit segmented toggle (§7.1/§10.4). */
+.view-edit-toggle {
+  display: inline-flex;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.view-edit-toggle .seg {
+  background: transparent;
+  color: #cdd9e6;
+  border: none;
+  padding: 0.35rem 0.7rem;
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.view-edit-toggle .seg.active {
+  background: #fff;
+  color: var(--navy);
+  font-weight: 600;
+}
+
+/* Summary band. */
+.summary-band {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.summary-name {
+  margin: 0 0 0.9rem;
+  font-size: 1.5rem;
+}
+
+.summary-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+}
+
+.fact {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.fact-label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted-solid);
+}
+
+.auto-badge {
+  display: inline-block;
+  margin-left: 0.4rem;
+  padding: 0.05rem 0.35rem;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+  background: #e8f0fa;
+  border-radius: 4px;
+  vertical-align: middle;
+}
+
+.section-title {
+  font-size: 0.95rem;
+  margin: 0 0 0.5rem;
+}
+
+.objective {
+  margin-bottom: 1.25rem;
+}
+
+.detail-filter {
+  margin-bottom: 1.25rem;
+}
+
+/* Milestone block. */
+.milestone-block {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  margin-bottom: 1rem;
+  overflow: hidden;
+}
+
+.milestone-header {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 0.8rem 1rem;
+  background: #f7f9fc;
+  border-bottom: 1px solid var(--border);
+}
+
+.milestone-name {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.milestone-target {
+  color: var(--muted-solid);
+  font-size: 0.85rem;
+}
+
+.empty-line {
+  padding: 0.8rem 1rem;
+  margin: 0;
+}
+
+/* Task table within a block. */
+.task-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.task-table th,
+.task-table td {
+  text-align: left;
+  padding: 0.55rem 1rem;
+  font-size: 0.9rem;
+}
+
+.task-table thead th {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted-solid);
+  border-bottom: 1px solid var(--border);
+}
+
+.task-name {
+  font-weight: 600;
+}
+
+.task-table .update-row td {
+  padding-top: 0;
+  padding-bottom: 0.9rem;
+  border-bottom: 1px solid var(--border);
+}
+
+/* Update thread (§13). */
+.update-thread {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.update.latest {
+  background: #fff8e9;
+  border-left: 3px solid #e0a106;
+  border-radius: 0 6px 6px 0;
+  padding: 0.5rem 0.75rem;
+}
+
+.update.history {
+  border-left: 3px solid var(--border);
+  padding: 0.5rem 0.75rem;
+}
+
+.update-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.78rem;
+  color: var(--muted-solid);
+  margin-bottom: 0.2rem;
+}
+
+.update-author {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.update-body {
+  font-size: 0.88rem;
+  white-space: pre-wrap;
+}
+
+.update-context {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  color: var(--muted-solid);
+  padding: 0 0.75rem;
+}
+
+.update-context-body {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.update-empty {
+  font-size: 0.85rem;
+  color: var(--muted-solid);
+  font-style: italic;
+  padding: 0.4rem 0.75rem;
+}
+
+.update-history {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.history-toggle {
+  align-self: flex-start;
+}
+
+/* File & sub-project strips. */
+.strip {
+  margin-top: 1.25rem;
+}
+
+.file-strip,
+.subproject-strip {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.file-chip {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.4rem 0.7rem;
+  font-size: 0.85rem;
+}
+
+.subproject-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.45rem 0.7rem;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.subproject-link:hover {
+  background: #f7f9fc;
+}

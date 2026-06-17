@@ -14,7 +14,7 @@ import NewProjectModal from '../components/NewProjectModal.jsx';
 
 const ALL_OWNERS = '__all__';
 
-export default function ProjectList() {
+export default function ProjectList({ onOpen }) {
   const { profile } = useAuth();
   const canCreate = profile?.role !== 'viewer'; // PRD §18
 
@@ -220,7 +220,7 @@ export default function ProjectList() {
                       type="button"
                       className="icon-button"
                       title="Open in View mode"
-                      onClick={() => setToast('Project detail arrives in Phase 3.')}
+                      onClick={() => onOpen?.(p.id)}
                     >
                       👁
                     </button>
@@ -229,7 +229,7 @@ export default function ProjectList() {
                         type="button"
                         className="icon-button"
                         title="Open in Edit mode"
-                        onClick={() => setToast('Edit mode arrives in Phase 4.')}
+                        onClick={() => onOpen?.(p.id)}
                       >
                         ✎
                       </button>
