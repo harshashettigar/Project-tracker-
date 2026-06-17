@@ -169,6 +169,22 @@ async function canEditProject(supabase, profile, projectId) {
   return !!data && data.owner_user_id === profile.id;
 }
 
+// Admin gate (PRD §16/§18). Resolves an active user, then requires the admin
+// role. Returns { supabase, profile } or writes the response and returns null.
+async function requireAdmin(req, res) {
+  const ctx = await requireActiveUser(req, res);
+  if (!ctx) return null;
+  if (ctx.profile.role !== 'admin') {
+    res.status(403).json({ ok: false, error: 'admin only' });
+    return null;
+  }
+  return ctx;
+}
+
+const USER_ROLES = new Set(['admin', 'manager', 'member', 'viewer']);
+const USER_STATUSES = new Set(['active', 'inactive']);
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 // Derived target date (PRD §12.2) for a set of project ids: the latest target
 // across each project's milestones and its direct (no-milestone) tasks, or null.
 // Computed from RLS-scoped child rows (not the bypassing view) — see decisions.md.
@@ -830,6 +846,126 @@ app.delete('/api/files/:id', async (req, res) => {
   if (error) return res.status(400).json({ ok: false, error: error.message });
   if (serviceClient)
     await serviceClient.storage.from(ATTACHMENTS_BUCKET).remove([row.storage_path]);
+  res.json({ ok: true });
+});
+
+// ==========================================================================
+// Admin — User management (PRD §16). Admin-only. The invite-to-set-password flow
+// uses the Supabase admin API (service role); the app never sets a password.
+// ==========================================================================
+
+// List users for the admin table, with each user's mapped-employee count (§16.2).
+app.get('/api/admin/users', async (req, res) => {
+  const ctx = await requireAdmin(req, res);
+  if (!ctx) return;
+  const { supabase } = ctx;
+
+  const { data: users, error } = await supabase
+    .from('users')
+    .select('id, full_name, email, role, status, invited_at')
+    .order('full_name');
+  if (error) return res.status(500).json({ ok: false, error: error.message });
+
+  // Mapped count = how many owners this user is granted visibility into (§17).
+  const { data: maps } = await supabase.from('user_visibility').select('viewer_user_id');
+  const countByViewer = new Map();
+  for (const m of maps || [])
+    countByViewer.set(m.viewer_user_id, (countByViewer.get(m.viewer_user_id) || 0) + 1);
+
+  res.json({
+    ok: true,
+    users: users.map((u) => ({ ...u, mapped_count: countByViewer.get(u.id) || 0 })),
+  });
+});
+
+// Invite a new user (§16.3). Admin never types a password — Supabase emails an
+// invite-to-set-password link. We create the auth identity via the admin API,
+// then insert the matching public.users row (id links them).
+app.post('/api/admin/users', async (req, res) => {
+  const ctx = await requireAdmin(req, res);
+  if (!ctx) return;
+  if (!serviceClient) return res.status(503).json({ ok: false, error: 'admin API not configured' });
+
+  const full_name = (req.body?.full_name || '').trim();
+  const email = (req.body?.email || '').trim().toLowerCase();
+  const role = req.body?.role;
+  const status = req.body?.status || 'active';
+
+  if (!full_name) return res.status(400).json({ ok: false, error: 'Full name is required.' });
+  if (!EMAIL_RE.test(email))
+    return res.status(400).json({ ok: false, error: 'Enter a valid email address.' });
+  if (!USER_ROLES.has(role)) return res.status(400).json({ ok: false, error: 'Invalid role.' });
+  if (!USER_STATUSES.has(status))
+    return res.status(400).json({ ok: false, error: 'Invalid status.' });
+
+  // Uniqueness (§16.3): the users table has a UNIQUE(email), but check first for a
+  // clean message (and to avoid a dangling auth user on conflict).
+  const { data: existing } = await serviceClient
+    .from('users')
+    .select('id')
+    .eq('email', email)
+    .maybeSingle();
+  if (existing)
+    return res.status(409).json({ ok: false, error: 'Another user already uses this email.' });
+
+  const redirectTo = `${process.env.APP_URL || 'http://localhost:5173'}/#type=invite`;
+  const { data: invited, error: inviteErr } = await serviceClient.auth.admin.inviteUserByEmail(
+    email,
+    { data: { full_name }, redirectTo },
+  );
+  if (inviteErr || !invited?.user)
+    return res
+      .status(400)
+      .json({ ok: false, error: inviteErr?.message || 'Could not send the invite.' });
+
+  const { data, error } = await serviceClient
+    .from('users')
+    .insert({ id: invited.user.id, full_name, email, role, status, invited_at: new Date().toISOString() })
+    .select('id, full_name, email, role, status')
+    .single();
+  if (error) {
+    // Roll back the auth identity so a retry isn't blocked by a half-created user.
+    await serviceClient.auth.admin.deleteUser(invited.user.id);
+    if (error.code === '23505')
+      return res.status(409).json({ ok: false, error: 'Another user already uses this email.' });
+    return res.status(400).json({ ok: false, error: error.message });
+  }
+  res.status(201).json({ ok: true, user: data });
+});
+
+// Edit a user (§16.3) and deactivate/reactivate (§16.4). Email is the identity
+// and is not editable in v1. An admin cannot deactivate their own account (§16.4).
+app.patch('/api/admin/users/:id', async (req, res) => {
+  const ctx = await requireAdmin(req, res);
+  if (!ctx) return;
+  const { supabase, profile } = ctx;
+  const { id } = req.params;
+
+  const patch = {};
+  if ('full_name' in req.body) {
+    const full_name = (req.body.full_name || '').trim();
+    if (!full_name) return res.status(400).json({ ok: false, error: 'Full name is required.' });
+    patch.full_name = full_name;
+  }
+  if ('role' in req.body) {
+    if (!USER_ROLES.has(req.body.role))
+      return res.status(400).json({ ok: false, error: 'Invalid role.' });
+    patch.role = req.body.role;
+  }
+  if ('status' in req.body) {
+    if (!USER_STATUSES.has(req.body.status))
+      return res.status(400).json({ ok: false, error: 'Invalid status.' });
+    // Self-guard (§16.4): an admin can't deactivate their own account.
+    if (req.body.status === 'inactive' && id === profile.id)
+      return res.status(400).json({ ok: false, error: "You can't deactivate your own account." });
+    patch.status = req.body.status;
+  }
+  if (Object.keys(patch).length === 0)
+    return res.status(400).json({ ok: false, error: 'nothing to update' });
+
+  // Writes go AS THE USER so RLS (users_admin_write) is the final gate.
+  const { error } = await supabase.from('users').update(patch).eq('id', id);
+  if (error) return res.status(400).json({ ok: false, error: error.message });
   res.json({ ok: true });
 });
 

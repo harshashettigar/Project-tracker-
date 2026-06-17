@@ -392,6 +392,33 @@ body {
 .status-completed   { color: #2e7d4f; background: #e3f5ea; }
 .status-at_risk     { color: #c0392b; background: #fdecea; }
 
+/* Role chips (§7.3) — a family distinct from status, so the two never confuse.
+   Admin violet · Manager blue · Member grey · Viewer slate. */
+.role-admin   { color: #6b3fa0; background: #efe6fa; }
+.role-manager { color: #2f6f9e; background: #e4f0f8; }
+.role-member  { color: #5b6675; background: #eef0f3; }
+.role-viewer  { color: #5a6b7b; background: #e9eef2; }
+
+/* User status chips: Active green · Inactive grey. */
+.ustatus-active   { color: #2e7d4f; background: #e3f5ea; }
+.ustatus-inactive { color: #5b6675; background: #eef0f3; }
+
+/* A destructive text action (e.g. Deactivate). */
+.link-button.danger {
+  color: var(--error);
+}
+
+.link-button:disabled {
+  color: var(--muted-solid);
+  cursor: default;
+  text-decoration: none;
+}
+
+.invite-note {
+  font-size: 0.82rem;
+  margin: 0 0 0.4rem;
+}
+
 /* Status filter chips toggle on/off; "off" reads as de-selected. */
 .chip.toggle {
   cursor: pointer;
