@@ -7,3 +7,6 @@ dist/
 # Supabase CLI local artifacts
 supabase/.branches/
 supabase/.temp/
+
+# Claude Code local settings (launch.json is shared; local settings are not)
+.claude/settings.local.json

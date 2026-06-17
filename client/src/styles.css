@@ -1,0 +1,308 @@
+/* Project Tracker — base styles for Phase 1 (Auth & shell).
+   Colours follow PRD §7.4: navy header #1C3A5E, configurable accent in the
+   #2B6AA8–#3A79DF blue range. Type is a clean humanist sans (IBM Plex Sans in
+   the design; we fall back through the system humanist stack). */
+
+:root {
+  --navy: #1c3a5e;
+  --accent: #2b6aa8;
+  --accent-strong: #3a79df;
+  --bg: #f4f6f9;
+  --card: #ffffff;
+  --text: #1b2530;
+  --muted: #61708288;
+  --muted-solid: #617082;
+  --border: #d9dfe7;
+  --error: #c0392b;
+  --ok: #2e7d4f;
+
+  --font-sans: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  color: var(--text);
+  background: var(--bg);
+}
+
+.muted {
+  color: var(--muted-solid);
+}
+
+/* ---- auth screens (login / set-password) -------------------------------- */
+
+.auth-bg {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  background: linear-gradient(160deg, #eef2f7, #f7f9fc);
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 380px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 2rem 1.75rem;
+  box-shadow: 0 10px 30px rgba(28, 58, 94, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.auth-mark {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: var(--navy);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.auth-heading {
+  margin: 0;
+  font-size: 1.4rem;
+}
+
+.auth-error {
+  margin: 0;
+  padding: 0.6rem 0.75rem;
+  background: #fdecea;
+  border: 1px solid #f3c6c1;
+  border-radius: 8px;
+  color: var(--error);
+  font-size: 0.9rem;
+}
+
+.auth-footer {
+  margin: 0.25rem 0 0;
+  font-size: 0.8rem;
+  color: var(--muted-solid);
+  text-align: center;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.field-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.field input {
+  width: 100%;
+  padding: 0.6rem 0.7rem;
+  font: inherit;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.field input:focus {
+  outline: 2px solid var(--accent-strong);
+  outline-offset: 1px;
+  border-color: var(--accent-strong);
+}
+
+.field-with-toggle {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.field-with-toggle input {
+  padding-right: 3.5rem;
+}
+
+.field-with-toggle .link-button {
+  position: absolute;
+  right: 0.5rem;
+}
+
+.primary-button {
+  padding: 0.65rem 1rem;
+  font: inherit;
+  font-weight: 600;
+  color: #fff;
+  background: var(--accent);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.primary-button:hover:not(:disabled) {
+  background: var(--accent-strong);
+}
+
+.primary-button.full {
+  width: 100%;
+}
+
+.primary-button:disabled {
+  opacity: 0.65;
+  cursor: default;
+}
+
+.link-button {
+  background: none;
+  border: none;
+  color: var(--accent);
+  font: inherit;
+  cursor: pointer;
+  padding: 0.2rem 0.3rem;
+}
+
+.link-button:hover:not(:disabled) {
+  text-decoration: underline;
+}
+
+.link-button.forgot {
+  align-self: center;
+}
+
+/* ---- toast (PRD §8.3) --------------------------------------------------- */
+
+.toast {
+  position: fixed;
+  top: 1.25rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--navy);
+  color: #fff;
+  padding: 0.7rem 1.1rem;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  font-size: 0.9rem;
+  z-index: 50;
+  animation: toast-life 4s forwards;
+}
+
+@keyframes toast-life {
+  0% { opacity: 0; transform: translate(-50%, -8px); }
+  8%, 85% { opacity: 1; transform: translate(-50%, 0); }
+  100% { opacity: 0; transform: translate(-50%, -8px); }
+}
+
+/* ---- app shell (PRD §7.1) ----------------------------------------------- */
+
+.shell {
+  min-height: 100vh;
+}
+
+.topbar {
+  height: 56px;
+  background: var(--navy);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1.25rem;
+}
+
+.topbar-title {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-weight: 600;
+}
+
+.topbar-mark {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.account {
+  position: relative;
+}
+
+.avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: var(--accent);
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.account-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 200px;
+  background: #fff;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 12px 28px rgba(28, 58, 94, 0.18);
+  padding: 0.4rem;
+  z-index: 40;
+}
+
+.account-id {
+  padding: 0.5rem 0.6rem;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 0.3rem;
+}
+
+.account-name {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.account-email {
+  font-size: 0.8rem;
+  color: var(--muted-solid);
+}
+
+.menu-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 0.55rem 0.6rem;
+  background: none;
+  border: none;
+  border-radius: 6px;
+  font: inherit;
+  cursor: pointer;
+  color: var(--text);
+}
+
+.menu-item:hover:not(:disabled) {
+  background: #eef2f7;
+}
+
+.menu-item:disabled {
+  color: var(--muted-solid);
+  cursor: default;
+}
+
+.shell-body {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 2rem 1.25rem;
+}
