@@ -6,14 +6,19 @@ import { useState } from 'react';
 import ProjectList from './ProjectList.jsx';
 import ProjectDetail from './ProjectDetail.jsx';
 import AdminUsers from './AdminUsers.jsx';
+import AdminMappings from './AdminMappings.jsx';
 
 export default function AuthedApp() {
   const [route, setRoute] = useState({ name: 'list' });
 
-  const onAdmin = () => setRoute({ name: 'admin' });
+  const onAdmin = () => setRoute({ name: 'admin', tab: 'users' });
 
   if (route.name === 'admin') {
-    return <AdminUsers onNavigate={setRoute} />;
+    return route.tab === 'mappings' ? (
+      <AdminMappings onNavigate={setRoute} focusUserId={route.focusUserId} />
+    ) : (
+      <AdminUsers onNavigate={setRoute} />
+    );
   }
   if (route.name === 'detail') {
     return (

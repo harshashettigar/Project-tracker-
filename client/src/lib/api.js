@@ -55,6 +55,10 @@ export const api = {
   adminListUsers: () => request('GET', '/api/admin/users').then((d) => d.users),
   adminCreateUser: (payload) => request('POST', '/api/admin/users', payload).then((d) => d.user),
   adminUpdateUser: (id, patch) => request('PATCH', `/api/admin/users/${id}`, patch),
+  adminGetMappings: () => request('GET', '/api/admin/mappings'),
+  adminAddMapping: (viewer_user_id, owner_user_id) =>
+    request('POST', '/api/admin/mappings', { viewer_user_id, owner_user_id }),
+  adminDeleteMapping: (id) => request('DELETE', `/api/admin/mappings/${id}`),
 
   // Edit mode (PRD §11).
   updateProject: (id, patch) => request('PATCH', `/api/projects/${id}`, patch),

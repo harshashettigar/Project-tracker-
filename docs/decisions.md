@@ -80,3 +80,9 @@
 
 \- Phase 7: account-menu "Admin" entry is wired via an `onAdmin` prop on `AppShell` (shown enabled only to admins); routing adds an in-memory `admin` route in `AuthedApp`. The "Mapped" count links to a Phase-8 placeholder (toast) for now.
 
+\- Phase 8: mapping routes are admin-gated: `GET /api/admin/mappings` (returns users with owned-project counts + all grants; client resolves names/counts), `POST /api/admin/mappings` (grant — self-map → 400 with the §17.3 message, duplicate is an idempotent no-op), `DELETE /api/admin/mappings/:id` (revoke). In `user_visibility`, viewer = the user, owner = the mapped "employee"; `created_by` = the acting admin.
+
+\- Phase 8: grants/revokes write to `user_visibility` only — visibility itself is already enforced by the existing project-list RLS (`can_see_project_owner` reads the table), so no policy change was needed. Verified end-to-end: granting viewer→member made the viewer actually see member's project.
+
+\- Phase 8: Admin area is now two tabs (`AdminTabs`: Users | Mappings) over an in-memory `admin` route with an optional `tab` (default users) and `focusUserId`. The Users-tab "Mapped" count deep-links into the Mappings tab preselecting that user.
+

@@ -10,6 +10,7 @@ import AppShell from '../components/AppShell.jsx';
 import Avatar from '../components/Avatar.jsx';
 import { RoleChip, UserStatusChip } from '../components/RoleChip.jsx';
 import AdminUserModal from '../components/AdminUserModal.jsx';
+import AdminTabs from '../components/AdminTabs.jsx';
 
 const ROLES = ['admin', 'manager', 'member', 'viewer'];
 const ALL_ROLES = '__all__';
@@ -107,6 +108,8 @@ export default function AdminUsers({ onNavigate }) {
           {toast}
         </div>
       )}
+
+      <AdminTabs active="users" onNavigate={onNavigate} />
 
       <div className="page-head">
         <h1>Users{users ? ` (${filtered.length})` : ''}</h1>
@@ -209,7 +212,7 @@ export default function AdminUsers({ onNavigate }) {
                       <button
                         type="button"
                         className="link-button"
-                        onClick={() => setToast('Mappings — coming in Phase 8.')}
+                        onClick={() => onNavigate({ name: 'admin', tab: 'mappings', focusUserId: u.id })}
                       >
                         {u.mapped_count}
                       </button>
