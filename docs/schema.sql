@@ -117,7 +117,9 @@ create table audit_log (
 -- ==========================================================================
 -- Derived project target date (§12.2 / §21.3)
 -- ==========================================================================
-create view project_target_dates as
+-- security_invoker=on so the view honours the caller's RLS (PRD §3); added in
+-- migration 20260617091000_hardening.sql (Phase 9).
+create view project_target_dates with (security_invoker = on) as
 select
   p.id as project_id,
   greatest(
@@ -131,6 +133,8 @@ from projects p;
 -- One-level sub-project depth (§14) and updated_at maintenance live in
 -- supabase/migrations/20260617090100_triggers.sql.
 -- Row-Level Security (the security boundary, §3/§17–18/§21.3) lives in
--- supabase/migrations/20260617090300_rls.sql. See those files for the full
--- function and policy definitions; they are intentionally not duplicated here.
+-- supabase/migrations/20260617090300_rls.sql, with Phase 9 hardening in
+-- 20260617091000_hardening.sql (can_create_projects() excludes viewers from the
+-- projects INSERT policy; the view above is security_invoker). See those files
+-- for the full function and policy definitions; not duplicated here.
 -- ==========================================================================

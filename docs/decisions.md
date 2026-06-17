@@ -86,3 +86,9 @@
 
 \- Phase 8: Admin area is now two tabs (`AdminTabs`: Users | Mappings) over an in-memory `admin` route with an optional `tab` (default users) and `focusUserId`. The Users-tab "Mapped" count deep-links into the Mappings tab preselecting that user.
 
+\- Phase 9: migration `20260617091000_hardening.sql` (a) adds `can_create_projects()` and rewrites the projects INSERT policy to `is_admin() OR (owner = auth.uid() AND can_create_projects())` so VIEWERS are denied create at the DB (verified: viewer direct insert → 42501; member still allowed); (b) sets `security_invoker = on` on `project_target_dates` so the view honours the caller's RLS (verified: viewer sees 0 rows, service sees 3). Mirrored into `docs/schema.sql`.
+
+\- Phase 9: §20.2 auditability — admin actions now write to `audit_log` via the service role (`audit()` helper, best-effort, never blocks the action): `user.create`/`user.update`/`user.deactivate`/`user.reactivate`, `mapping.add`/`mapping.remove`, each with actor + timestamp. (Project/milestone/task edits are not audited in v1 — §20.2 scopes auditability to access/membership/mapping changes; task-update history is the per-task append-only trail.)
+
+\- Phase 9: §20 review findings — invite-only/no-signup ✓; hashed passwords (provider) ✓; permissions matrix + visibility enforced server + DB ✓ (incl. the viewer-create fix above); sessions/auto-refresh + sign-out clears state + inactive can't sign in ✓; file allow-list/size/scan/private-bucket+signed-URL ✓; user text escaped on render (React default; no `dangerouslySetInnerHTML`/`innerHTML` anywhere) ✓; task updates append-only (no UPDATE/DELETE policy) ✓; dates dd/mm/yyyy ✓ (₹ currency N/A — no money fields in v1). Deferred: real virus scanner (stub hook), broader keyboard/focus polish, deep-link URLs.
+
