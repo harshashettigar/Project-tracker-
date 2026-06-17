@@ -1,19 +1,13 @@
-// Authenticated app shell (PRD §7.1). The persistent navy top bar that wraps
-// every authenticated screen: app title on the left, account menu on the right.
-// The View/Edit toggle (detail screens) and New project button (list) slot in
-// here in later phases; for now the body is a placeholder for the project list.
+// Authenticated app shell / layout (PRD §7.1). The persistent navy top bar that
+// wraps every authenticated screen: app title on the left, an optional actions
+// slot (e.g. the New project button on the list — §7.1), then the account menu.
+// Screens render their content as children.
 
 import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../auth/AuthProvider.jsx';
+import { initials } from '../lib/format.js';
 
-function initials(name = '') {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) return '?';
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-}
-
-export default function AppShell() {
+export default function AppShell({ actions = null, children }) {
   const { profile, signOut } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
@@ -47,44 +41,42 @@ export default function AppShell() {
           <span>Project Tracker</span>
         </div>
 
-        <div className="account" ref={menuRef}>
-          <button
-            type="button"
-            className="avatar"
-            aria-haspopup="menu"
-            aria-expanded={menuOpen}
-            title={profile?.full_name || profile?.email}
-            onClick={() => setMenuOpen((v) => !v)}
-          >
-            {initials(profile?.full_name)}
-          </button>
+        <div className="topbar-right">
+          {actions}
 
-          {menuOpen && (
-            <div className="account-menu" role="menu">
-              <div className="account-id">
-                <div className="account-name">{profile?.full_name}</div>
-                <div className="account-email">{profile?.email}</div>
-              </div>
-              {isAdmin && (
-                <button type="button" role="menuitem" className="menu-item" disabled>
-                  Admin
+          <div className="account" ref={menuRef}>
+            <button
+              type="button"
+              className="avatar"
+              aria-haspopup="menu"
+              aria-expanded={menuOpen}
+              title={profile?.full_name || profile?.email}
+              onClick={() => setMenuOpen((v) => !v)}
+            >
+              {initials(profile?.full_name)}
+            </button>
+
+            {menuOpen && (
+              <div className="account-menu" role="menu">
+                <div className="account-id">
+                  <div className="account-name">{profile?.full_name}</div>
+                  <div className="account-email">{profile?.email}</div>
+                </div>
+                {isAdmin && (
+                  <button type="button" role="menuitem" className="menu-item" disabled>
+                    Admin
+                  </button>
+                )}
+                <button type="button" role="menuitem" className="menu-item" onClick={signOut}>
+                  Sign out
                 </button>
-              )}
-              <button type="button" role="menuitem" className="menu-item" onClick={signOut}>
-                Sign out
-              </button>
-            </div>
-          )}
+              </div>
+            )}
+          </div>
         </div>
       </header>
 
-      <main className="shell-body">
-        <h1>Projects</h1>
-        <p className="muted">
-          Signed in as {profile?.full_name} ({profile?.role}). The project list
-          arrives in Phase 2.
-        </p>
-      </main>
+      <main className="shell-body">{children}</main>
     </div>
   );
 }

@@ -3,52 +3,60 @@
 > **Read this first, write it last.** It is the handoff between sessions.
 > Keep it short. Move durable facts to `CLAUDE.md`; keep only what's moving here.
 
-**Last updated:** 2026-06-17 (Phase 1 complete, merged to `main`)
-**Current phase:** Phase 2 — Project list (next)
+**Last updated:** 2026-06-17 (Phase 2 complete, merged to `main`)
+**Current phase:** Phase 3 — Project Detail (View mode) (next)
 
 ---
 
 ## State in one line
 
-Phase 1 (Auth & shell) is done and verified in the browser against the hosted
-Supabase project: login, all PRD §8.3 states, sign-out, reset toast, and the
-inactive-account refusal (server-side) all work. Next is Phase 2 — the project
-list (the home screen).
+Phase 2 (Project list) is done and verified in-browser against the hosted
+Supabase project: the list shows the RLS-permitted top-level projects with
+derived target dates, search/owner/status filters, empty states, and the
+create-project modal. Next is Phase 3 — the read-only project detail screen.
 
 ## Done
 
-- **Login screen** (PRD §8.2/§8.3): centred card, email + password with show/hide,
-  full-width Sign-in with loading state, Forgot-password link, invite-only footer,
-  responsive. All six §8.3 states wired with **exact** wording.
-- **AuthProvider** (`client/src/auth/`): Supabase session handling, auto-refresh,
-  recovery/invite flow, and sign-in gating.
-- **Inactive-account refusal is server-side** (PRD §3/§8.3): new `GET /api/me`
-  reads the caller's own `users` row under RLS and returns 403 `inactive` when
-  `status <> 'active'`; the client signs the session out and shows the §8.3 message.
-- **App shell** (PRD §7.1): navy top bar, account menu (name/email, Sign out;
-  Admin entry visible to admins only — disabled placeholder until Phase 7).
-- **Set password** screen shared by invite + reset flows.
-- Verified live in-browser with seeded accounts: empty-field msg, wrong-credentials
-  msg, admin sign-in → shell, account menu, sign-out → login, reset toast; and via
-  API: all 4 roles sign in, inactive viewer → 403 (then restored to active).
-- Merged `feature/auth-shell` → `main`.
+- **Project list** (PRD §9): heading + count, table (Sl zero-padded, Name, Start,
+  derived Target, Status chip, Responsible + avatar, View/Edit actions). Only
+  top-level projects (§9.2).
+- **Visibility is RLS-enforced** — `GET /api/projects` queries AS THE USER; per-role
+  results verified (admin 2 / manager 2 / member 1 / viewer 0 top-level).
+- **Derived target date** (§12.2) computed server-side from RLS-scoped milestones +
+  direct tasks (not the bypassing view). Plant Safety Audit → 30/06/2026.
+- **Filters/search** (§9.5): search + owner dropdown + status chips, AND-combined,
+  client-side; "Clear all"; both empty states (§19.2: no projects / no matches).
+- **Create project** (§9.4): light modal (name required per §19.1, objective, owner
+  picker for admins, start date = today); creates a Draft; viewers blocked at the
+  API (403) and the New-project button hidden for viewers.
+- New shared bits: `lib/api.js` (token-bearing fetch), `lib/format.js` (dd/mm/yyyy,
+  initials, status vocab), `StatusChip`, `Avatar`; `AppShell` is now a layout
+  with a top-bar `actions` slot.
+- Verified in-browser (admin + viewer) and via API (all 4 roles, create validation,
+  viewer refusal). Test rows cleaned up. Merged `feature/project-list` → `main`.
 
 ## Next slice (do this session)
 
-**Phase 2 — Project list** (PRD §9). The home screen: filter/search row + the
-project table (Sl, Project Name, Start Date, derived Target Date, Status chip,
-Responsible) showing only the projects the user may see (own + mapped; admins all
-— enforced by RLS), the New-project modal (§9.4), and the empty/empty-results
-states (§19.2). Target date is read-only/derived (use `project_target_dates`).
+**Phase 3 — Project Detail (View mode)** (PRD §10, with §12–13). Read-only detail:
+summary band (name, start, derived target with AUTO badge, status, owner),
+objective with More› expander, detail status filter, milestone blocks with their
+task tables, project-level task table, the latest-update-highlighted **task update
+thread** (§13, build as a reusable component), Files + Sub-projects strips (links
+only — full behaviour in Phases 5–6). Wire the list's eye action to open it.
 
-**Definition of done:** the table lists exactly the permitted top-level projects
-per role (verify against the seed: admin all / member own / manager own+mapped /
-viewer per mapping), filters+search combine with AND, New project creates a Draft
-and opens it, and it matches PRD §9 + §19.1 validation wording.
+**Definition of done:** opening a permitted project shows its milestones/tasks and
+each task's latest update + one-line predecessor, History expands newest-first
+after the latest, "No updates yet" when empty (§19.2), nothing editable, matches
+PRD §10. Access still enforced server/DB-side.
 
 ## Backlog (out of scope for the current slice)
 
-- _(empty)_
+- **Phase 9 hardening:** tighten the `projects` INSERT RLS policy to exclude the
+  viewer role (today viewers are blocked only by the API guard, not by RLS).
+- **Phase 9 hardening:** set `security_invoker = on` on `project_target_dates` so
+  the derived-target view is RLS-safe to query/expose directly.
+- §9.4 "new project opens immediately in Edit mode" — wire once Detail/Edit exist
+  (Phase 3/4); currently create confirms via toast + list refresh.
 
 ## Blockers / open
 
@@ -58,7 +66,7 @@ and opens it, and it matches PRD §9 + §19.1 validation wording.
 
 ## Branch state
 
-- Active branch: `main` (Phase 1 merged; nothing in flight).
+- Active branch: `main` (Phase 2 merged; nothing in flight).
 - Unmerged work: none.
 
 ## Useful facts for next session
@@ -66,13 +74,17 @@ and opens it, and it matches PRD §9 + §19.1 validation wording.
 - Demo password for all four seeded accounts: `DemoPass!234`. Emails: admin
   `appuser1.msc@manipalsplchem.com`, `manager.demo@…`, `member.demo@…`,
   `viewer.demo@…` (all `@manipalsplchem.com`, all `active`).
-- Run locally: API `cd server && node src/index.js` (:4000); client
-  `npm run dev --prefix client` (:5173, proxies `/api` → :4000).
-  Browser preview config in `.claude/launch.json` (server `client`).
-- The client reads the **repo-root** `.env` via Vite `envDir: '..'` — there is no
-  second `.env` under `client/`. VITE_SUPABASE_URL / ANON_KEY must be set there.
-- Auth-state gate: `GET /api/me` is the server-side sign-in check; reuse it (or
-  the loaded profile) for capability gating in later screens.
+- Seed data shape: 2 top-level projects (ERP Rollout — Demo Manager, draft;
+  Plant Safety Audit 2026 — Demo Member, in_progress, target 30/06/2026) + 1
+  sub-project; 2 milestones, 3 tasks, 2 task updates. Use these to verify Phase 3.
+- Run locally: API `cd server && node src/index.js` (:4000); client preview via
+  `.claude/launch.json` (server name `client`, :5173, proxies `/api` → :4000).
+- API so far: `GET /api/me`, `GET /api/users`, `GET /api/projects`,
+  `POST /api/projects`. All gated by `requireActiveUser()` (server/src/index.js),
+  which returns a user-scoped (RLS) client + the active profile. Reuse it for
+  Phase 3 detail endpoints; query child tables as the user so RLS scopes reads.
+- Client reads the **repo-root** `.env` via Vite `envDir: '..'`. Status vocabulary +
+  date/initials helpers live in `client/src/lib/format.js` — reuse, don't redefine.
 - `.env` (gitignored) holds Supabase URL + anon + service-role + access token.
 - Apply SQL: `cd server && node scripts/run-sql-api.mjs <file.sql>`.
 
@@ -80,6 +92,12 @@ and opens it, and it matches PRD §9 + §19.1 validation wording.
 
 ## Session log (newest first)
 
+- **2026-06-17** — Built Phase 2 (Project list): RLS-scoped `GET /api/projects` with
+  server-computed derived target dates, `GET /api/users`, `POST /api/projects`
+  (name validation, viewer 403); list UI with filters/search, empty states, status
+  chips, and the create modal. Verified in-browser (admin + viewer) and via API for
+  all four roles. Merged `feature/project-list` → `main`. Next: Phase 3 Detail View.
+  Blockers: none.
 - **2026-06-17** — Built Phase 1 (Auth & shell): login + all §8.3 states, Supabase
   session handling, shared set-password screen, navy app shell with account menu,
   and a server-side `GET /api/me` gate that refuses inactive accounts. Verified in

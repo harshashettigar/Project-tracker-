@@ -30,3 +30,11 @@
 
 \- Phase 1: client and server share the single repo-root `.env`; Vite reads it via `envDir: '..'` (no second `.env` under `client/`).
 
+\- Phase 2: derived target date (§12.2) is computed server-side from RLS-scoped milestones + direct tasks, NOT from the `project_target_dates` view — the view bypasses RLS (security_invoker off), so computing from child tables keeps the data layer the boundary. (Backlog: add `security_invoker=on` to the view in Phase 9 hardening so it's safe to expose directly.)
+
+\- Phase 2: viewer "cannot create" (§18) is enforced at the API (`POST /api/projects` 403s viewers) in addition to RLS. NOTE: the current projects INSERT policy allows any authenticated user to insert a project they own — it does not check role — so a viewer is blocked only by the API guard today. Backlog (Phase 9): tighten the RLS insert policy to exclude viewers.
+
+\- Phase 2: project list shows only top-level projects (`parent_project_id IS NULL`) per §9.2; sub-projects are reached via their parent (Phase 6). This is why per-role counts are one lower than Phase-0's raw project counts (3 seeded = 2 top-level + 1 sub).
+
+\- Phase 2: owner picker in the create modal is shown only to admins (who may set any owner); non-admins always own their own new projects (matches RLS). The "new project opens immediately in Edit mode" part of §9.4 is deferred until the detail screen exists (Phase 3/4); for now create confirms via toast and refreshes the list.
+
