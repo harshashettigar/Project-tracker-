@@ -419,6 +419,141 @@ body {
   margin: 0 0 0.4rem;
 }
 
+/* ---- admin area (PRD §16/§17) ------------------------------------------- */
+
+.admin-tabs {
+  display: flex;
+  gap: 0.25rem;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 1.25rem;
+}
+
+.admin-tab {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 0.55rem 0.9rem;
+  font: inherit;
+  font-weight: 600;
+  color: var(--muted-solid);
+  cursor: pointer;
+}
+
+.admin-tab.active {
+  color: var(--navy);
+  border-bottom-color: var(--accent);
+}
+
+.mappings-layout {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 1.25rem;
+  align-items: start;
+}
+
+.user-picker {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #fff;
+  padding: 0.6rem;
+}
+
+.user-picker ul,
+.mapped-list,
+.candidate-list {
+  list-style: none;
+  margin: 0.5rem 0 0;
+  padding: 0;
+}
+
+.picker-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 0.5rem;
+  padding: 0.45rem 0.55rem;
+  background: none;
+  border: none;
+  border-radius: 8px;
+  font: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.picker-row:hover {
+  background: #f7f9fc;
+}
+
+.picker-row.active {
+  background: #e8f0fa;
+}
+
+.picker-count {
+  font-size: 0.78rem;
+  color: var(--muted-solid);
+  font-family: ui-monospace, monospace;
+}
+
+.mapping-panel {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #fff;
+  padding: 1.1rem 1.25rem;
+}
+
+.mapping-summary {
+  margin: 0 0 1rem;
+  font-size: 0.95rem;
+  background: #f7f9fc;
+  border-left: 3px solid var(--accent);
+  padding: 0.6rem 0.8rem;
+  border-radius: 0 6px 6px 0;
+}
+
+.mapped-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.candidate-list {
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.candidate-row {
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  border-radius: 6px;
+  padding: 0.45rem 0.55rem;
+  font: inherit;
+  cursor: pointer;
+}
+
+.candidate-row:hover:not(:disabled) {
+  background: #f7f9fc;
+}
+
+.candidate-row:disabled {
+  color: var(--muted-solid);
+  cursor: default;
+}
+
+.overview-title {
+  margin-top: 1.75rem;
+}
+
+@media (max-width: 720px) {
+  .mappings-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* Status filter chips toggle on/off; "off" reads as de-selected. */
 .chip.toggle {
   cursor: pointer;

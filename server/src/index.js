@@ -969,6 +969,86 @@ app.patch('/api/admin/users/:id', async (req, res) => {
   res.json({ ok: true });
 });
 
+// ==========================================================================
+// Admin — Visibility mappings (PRD §17). Admin-only. A mapping grants a viewer
+// visibility into all projects owned by another user, in addition to their own
+// (the project-list RLS reads user_visibility). Many-to-many.
+// ==========================================================================
+
+// Everything the mappings screen needs: the users (with their owned-project
+// counts) and every grant. The client resolves names/counts from these.
+app.get('/api/admin/mappings', async (req, res) => {
+  const ctx = await requireAdmin(req, res);
+  if (!ctx) return;
+  const { supabase } = ctx;
+
+  const [{ data: users, error: uErr }, { data: projects }, { data: mappings, error: mErr }] =
+    await Promise.all([
+      supabase.from('users').select('id, full_name, role, status').order('full_name'),
+      supabase.from('projects').select('owner_user_id'), // admin sees all (RLS)
+      supabase.from('user_visibility').select('id, viewer_user_id, owner_user_id'),
+    ]);
+  if (uErr || mErr)
+    return res.status(500).json({ ok: false, error: (uErr || mErr).message });
+
+  const projectCount = new Map();
+  for (const p of projects || [])
+    projectCount.set(p.owner_user_id, (projectCount.get(p.owner_user_id) || 0) + 1);
+
+  res.json({
+    ok: true,
+    users: (users || []).map((u) => ({ ...u, project_count: projectCount.get(u.id) || 0 })),
+    mappings: mappings || [],
+  });
+});
+
+// Grant a mapping (§17.3). Self-map blocked; duplicate is an idempotent no-op.
+app.post('/api/admin/mappings', async (req, res) => {
+  const ctx = await requireAdmin(req, res);
+  if (!ctx) return;
+  const { supabase, profile } = ctx;
+
+  const viewer_user_id = req.body?.viewer_user_id;
+  const owner_user_id = req.body?.owner_user_id;
+  if (!viewer_user_id || !owner_user_id)
+    return res.status(400).json({ ok: false, error: 'viewer and owner are required' });
+  if (viewer_user_id === owner_user_id)
+    return res
+      .status(400)
+      .json({ ok: false, error: "A user can't be mapped to view their own projects." });
+
+  // Idempotent: if the grant already exists, return it without erroring (§17.3).
+  const { data: existing } = await supabase
+    .from('user_visibility')
+    .select('id')
+    .eq('viewer_user_id', viewer_user_id)
+    .eq('owner_user_id', owner_user_id)
+    .maybeSingle();
+  if (existing) return res.json({ ok: true, id: existing.id, mapping: existing });
+
+  const { data, error } = await supabase
+    .from('user_visibility')
+    .insert({ viewer_user_id, owner_user_id, created_by: profile.id })
+    .select('id')
+    .single();
+  if (error) {
+    // A concurrent insert may have created it — treat the unique violation as a no-op.
+    if (error.code === '23505') return res.json({ ok: true });
+    return res.status(400).json({ ok: false, error: error.message });
+  }
+  res.status(201).json({ ok: true, id: data.id });
+});
+
+// Revoke a mapping (§17.3) — detaches the grant immediately.
+app.delete('/api/admin/mappings/:id', async (req, res) => {
+  const ctx = await requireAdmin(req, res);
+  if (!ctx) return;
+  const { supabase } = ctx;
+  const { error } = await supabase.from('user_visibility').delete().eq('id', req.params.id);
+  if (error) return res.status(400).json({ ok: false, error: error.message });
+  res.json({ ok: true });
+});
+
 const port = process.env.PORT || 4000;
 app.listen(port, () => {
   console.log(`Project Tracker API listening on http://localhost:${port}`);
