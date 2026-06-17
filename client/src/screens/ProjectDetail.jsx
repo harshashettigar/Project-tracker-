@@ -57,7 +57,7 @@ function ReadTaskTable({ tasks }) {
   );
 }
 
-export default function ProjectDetail({ projectId, initialMode = 'view', onNavigate }) {
+export default function ProjectDetail({ projectId, initialMode = 'view', onNavigate, onAdmin }) {
   const { profile } = useAuth();
   const [data, setData] = useState(null); // null = loading
   const [users, setUsers] = useState([]);
@@ -173,7 +173,7 @@ export default function ProjectDetail({ projectId, initialMode = 'view', onNavig
   );
 
   return (
-    <AppShell title={title} actions={project ? toggle : null}>
+    <AppShell title={title} actions={project ? toggle : null} onAdmin={onAdmin}>
       {toast && (
         <div className="toast" role="status" onAnimationEnd={() => setToast('')}>
           {toast}

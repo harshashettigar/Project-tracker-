@@ -72,3 +72,11 @@
 
 \- Phase 6: the link-existing candidate list comes from `GET /api/projects` (top-level, visible) filtered client-side to projects the caller owns (or admin) and excluding self + current children. Add/link controls are hidden when the project is itself a sub-project (one level); the DB trigger backstops it.
 
+\- Phase 7: admin user routes are a separate admin-gated group (`requireAdmin`): `GET /api/admin/users` (with mapped counts), `POST /api/admin/users` (invite), `PATCH /api/admin/users/:id` (edit + deactivate/reactivate). `GET /api/users` stays as the non-admin directory for pickers. Mapped counts come from `user_visibility` (admin-readable).
+
+\- Phase 7: invite-on-create uses Supabase `auth.admin.inviteUserByEmail` (service role) then inserts the matching `public.users` row; if the row insert fails the auth identity is rolled back (`deleteUser`) so a retry isn't blocked. Redirect target is `APP_URL/#type=invite` → the existing SetPassword screen. NOTE: GoTrue rejects some addresses (e.g. `example.com`); tested with a real-domain plus-address.
+
+\- Phase 7: email is the identity — editable only at create, READ-ONLY on edit (changing it would mean re-issuing the auth identity; out of v1 scope). Self-deactivate guard (§16.4) is enforced in the API (id === caller && status=inactive → 400) and disabled in the UI. Status changes write AS THE USER so `users_admin_write` RLS is the final gate.
+
+\- Phase 7: account-menu "Admin" entry is wired via an `onAdmin` prop on `AppShell` (shown enabled only to admins); routing adds an in-memory `admin` route in `AuthedApp`. The "Mapped" count links to a Phase-8 placeholder (toast) for now.
+

@@ -14,7 +14,7 @@ import NewProjectModal from '../components/NewProjectModal.jsx';
 
 const ALL_OWNERS = '__all__';
 
-export default function ProjectList({ onOpen, onEdit }) {
+export default function ProjectList({ onOpen, onEdit, onAdmin }) {
   const { profile } = useAuth();
   const canCreate = profile?.role !== 'viewer'; // PRD §18
 
@@ -101,7 +101,7 @@ export default function ProjectList({ onOpen, onEdit }) {
   ) : null;
 
   return (
-    <AppShell actions={newProjectButton}>
+    <AppShell actions={newProjectButton} onAdmin={onAdmin}>
       {toast && (
         <div className="toast" role="status" onAnimationEnd={() => setToast('')}>
           {toast}

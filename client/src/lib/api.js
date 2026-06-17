@@ -51,6 +51,11 @@ export const api = {
   getFileUrl: (id) => request('GET', `/api/files/${id}/url`),
   deleteFile: (id) => request('DELETE', `/api/files/${id}`),
 
+  // Admin — user management (PRD §16).
+  adminListUsers: () => request('GET', '/api/admin/users').then((d) => d.users),
+  adminCreateUser: (payload) => request('POST', '/api/admin/users', payload).then((d) => d.user),
+  adminUpdateUser: (id, patch) => request('PATCH', `/api/admin/users/${id}`, patch),
+
   // Edit mode (PRD §11).
   updateProject: (id, patch) => request('PATCH', `/api/projects/${id}`, patch),
   addMilestone: (projectId, payload) =>

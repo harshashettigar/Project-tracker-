@@ -8,8 +8,9 @@ import { useAuth } from '../auth/AuthProvider.jsx';
 import { initials } from '../lib/format.js';
 
 // `title` overrides the default product title (e.g. the project-name breadcrumb
-// on detail screens, §7.1); omit it on the list/admin screens.
-export default function AppShell({ actions = null, title = null, children }) {
+// on detail screens, §7.1); omit it on the list/admin screens. `onAdmin`, when
+// provided to an admin, makes the account-menu "Admin" item navigate (§16.1).
+export default function AppShell({ actions = null, title = null, onAdmin = null, children }) {
   const { profile, signOut } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
@@ -65,7 +66,16 @@ export default function AppShell({ actions = null, title = null, children }) {
                   <div className="account-email">{profile?.email}</div>
                 </div>
                 {isAdmin && (
-                  <button type="button" role="menuitem" className="menu-item" disabled>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="menu-item"
+                    disabled={!onAdmin}
+                    onClick={() => {
+                      setMenuOpen(false);
+                      onAdmin?.();
+                    }}
+                  >
                     Admin
                   </button>
                 )}
