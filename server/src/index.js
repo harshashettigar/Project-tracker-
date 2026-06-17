@@ -100,6 +100,28 @@ app.get('/api/users', async (req, res) => {
   res.json({ ok: true, users: data });
 });
 
+// Derived target date (PRD §12.2) for a set of project ids: the latest target
+// across each project's milestones and its direct (no-milestone) tasks, or null.
+// Computed from RLS-scoped child rows (not the bypassing view) — see decisions.md.
+async function deriveTargets(supabase, ids) {
+  const byProject = new Map();
+  if (!ids.length) return byProject;
+  const [{ data: ms }, { data: ts }] = await Promise.all([
+    supabase.from('milestones').select('project_id, target_date').in('project_id', ids),
+    supabase
+      .from('tasks')
+      .select('project_id, target_date')
+      .is('milestone_id', null)
+      .in('project_id', ids),
+  ]);
+  for (const row of [...(ms || []), ...(ts || [])]) {
+    if (!row.target_date) continue;
+    const cur = byProject.get(row.project_id);
+    if (!cur || row.target_date > cur) byProject.set(row.project_id, row.target_date);
+  }
+  return byProject;
+}
+
 // Project list (PRD §9). Returns only top-level projects the caller may see —
 // the visibility model is enforced by RLS on `projects` (PRD §3/§17), not here;
 // this endpoint simply queries AS THE USER. Target date is derived (§12.2): the
@@ -119,22 +141,7 @@ app.get('/api/projects', async (req, res) => {
   if (error) return res.status(500).json({ ok: false, error: error.message });
 
   const ids = projects.map((p) => p.id);
-  const targetByProject = new Map();
-  if (ids.length) {
-    const [{ data: ms }, { data: ts }] = await Promise.all([
-      supabase.from('milestones').select('project_id, target_date').in('project_id', ids),
-      supabase
-        .from('tasks')
-        .select('project_id, target_date')
-        .is('milestone_id', null)
-        .in('project_id', ids),
-    ]);
-    for (const row of [...(ms || []), ...(ts || [])]) {
-      if (!row.target_date) continue;
-      const cur = targetByProject.get(row.project_id);
-      if (!cur || row.target_date > cur) targetByProject.set(row.project_id, row.target_date);
-    }
-  }
+  const targetByProject = await deriveTargets(supabase, ids);
 
   // Owner names for the Responsible column (§9.3). Directory read is RLS-allowed.
   const { data: users } = await supabase.from('users').select('id, full_name');
@@ -185,6 +192,135 @@ app.post('/api/projects', async (req, res) => {
   if (error) return res.status(400).json({ ok: false, error: error.message });
 
   res.status(201).json({ ok: true, project: data });
+});
+
+// Project detail (PRD §10). Returns one project the caller may see, with its
+// milestones (each with their tasks), project-level tasks, every task's update
+// thread (newest-first, §13), the file strip (§15) and sub-project links (§14).
+// RLS scopes every read; an invisible (or missing) project yields 404.
+app.get('/api/projects/:id', async (req, res) => {
+  const ctx = await requireActiveUser(req, res);
+  if (!ctx) return;
+  const { supabase } = ctx;
+  const { id } = req.params;
+
+  const { data: project, error } = await supabase
+    .from('projects')
+    .select('id, name, owner_user_id, status, start_date, objective, parent_project_id')
+    .eq('id', id)
+    .maybeSingle();
+  if (error) return res.status(500).json({ ok: false, error: error.message });
+  if (!project) return res.status(404).json({ ok: false, error: 'not found' });
+
+  // Children, all RLS-scoped to projects the caller can see.
+  const [{ data: milestones }, { data: tasks }, { data: files }, { data: subs }] =
+    await Promise.all([
+      supabase
+        .from('milestones')
+        .select('id, name, target_date, status, sort_order')
+        .eq('project_id', id)
+        .order('sort_order'),
+      supabase
+        .from('tasks')
+        .select('id, milestone_id, name, start_date, target_date, status, sort_order')
+        .eq('project_id', id)
+        .order('sort_order'),
+      supabase
+        .from('attachments')
+        .select('id, file_name, file_type, size_bytes')
+        .eq('project_id', id),
+      supabase
+        .from('projects')
+        .select('id, name, status')
+        .eq('parent_project_id', id)
+        .order('name'),
+    ]);
+
+  const taskIds = (tasks || []).map((t) => t.id);
+  let updates = [];
+  if (taskIds.length) {
+    const { data } = await supabase
+      .from('task_updates')
+      .select('id, task_id, body, created_at, author_user_id')
+      .in('task_id', taskIds)
+      .order('created_at', { ascending: false }); // newest-first (§13)
+    updates = data || [];
+  }
+
+  // Names: owner, parent, and update authors. Directory read is RLS-allowed.
+  const { data: users } = await supabase.from('users').select('id, full_name');
+  const nameById = new Map((users || []).map((u) => [u.id, u.full_name]));
+
+  let parentName = null;
+  if (project.parent_project_id) {
+    const { data: parent } = await supabase
+      .from('projects')
+      .select('name')
+      .eq('id', project.parent_project_id)
+      .maybeSingle();
+    parentName = parent?.name ?? null;
+  }
+
+  // Group updates under their task (already newest-first).
+  const updatesByTask = new Map();
+  for (const u of updates) {
+    const row = {
+      id: u.id,
+      body: u.body,
+      created_at: u.created_at,
+      author_name: nameById.get(u.author_user_id) ?? null,
+    };
+    if (!updatesByTask.has(u.task_id)) updatesByTask.set(u.task_id, []);
+    updatesByTask.get(u.task_id).push(row);
+  }
+  const shapeTask = (t) => ({
+    id: t.id,
+    name: t.name,
+    start_date: t.start_date,
+    target_date: t.target_date,
+    status: t.status,
+    updates: updatesByTask.get(t.id) || [],
+  });
+
+  // Tasks split into milestone-scoped and project-level (milestone_id null).
+  const tasksByMilestone = new Map();
+  const projectTasks = [];
+  for (const t of tasks || []) {
+    if (t.milestone_id) {
+      if (!tasksByMilestone.has(t.milestone_id)) tasksByMilestone.set(t.milestone_id, []);
+      tasksByMilestone.get(t.milestone_id).push(shapeTask(t));
+    } else {
+      projectTasks.push(shapeTask(t));
+    }
+  }
+
+  const targets = await deriveTargets(supabase, [id]);
+
+  res.json({
+    ok: true,
+    project: {
+      id: project.id,
+      name: project.name,
+      status: project.status,
+      start_date: project.start_date,
+      objective: project.objective,
+      owner_user_id: project.owner_user_id,
+      owner_name: nameById.get(project.owner_user_id) ?? null,
+      parent_project_id: project.parent_project_id,
+      parent_name: parentName,
+      target_date: targets.get(id) ?? null,
+    },
+    milestones: (milestones || []).map((m) => ({
+      id: m.id,
+      name: m.name,
+      target_date: m.target_date,
+      status: m.status,
+      tasks: tasksByMilestone.get(m.id) || [],
+    })),
+    projectTasks,
+    files: files || [],
+    subProjects: subs || [],
+  });
 });
 
 const port = process.env.PORT || 4000;

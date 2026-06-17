@@ -38,3 +38,11 @@
 
 \- Phase 2: owner picker in the create modal is shown only to admins (who may set any owner); non-admins always own their own new projects (matches RLS). The "new project opens immediately in Edit mode" part of §9.4 is deferred until the detail screen exists (Phase 3/4); for now create confirms via toast and refreshes the list.
 
+\- Phase 3: still no URL router — `AuthedApp` holds in-memory route state (`list` | `detail{id}`) and threads a `navigate()` to screens. Sub-projects and the breadcrumb work via this; deep-linkable URLs deferred (revisit when sharing links matters).
+
+\- Phase 3: `GET /api/projects/:id` returns the whole detail tree (project + milestones-with-tasks + project-level tasks + each task's update thread newest-first + files + sub-projects) in one call; RLS scopes every child read, and an invisible/missing project yields 404. The detail target date reuses the shared `deriveTargets()` helper (also used by the list).
+
+\- Phase 3: the task-update-thread (§13) is a single reusable component used for milestone tasks and project-level tasks alike. History begins at the second-most-recent entry (latest shown highlighted above, not repeated); the one-line predecessor context is hidden while history is expanded.
+
+\- Phase 3: from the list, BOTH the eye and pencil row actions open the detail (View mode) for now; the in-detail View/Edit toggle's Edit option is a Phase-4 placeholder (toast). Pencil will deep-open Edit mode once Phase 4 lands.
+
