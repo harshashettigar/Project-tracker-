@@ -938,6 +938,35 @@ body {
   background: #f7f9fc;
 }
 
+.subproject-edit-row {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.subproject-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-top: 0.9rem;
+}
+
+.subproject-add,
+.subproject-link-existing {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.subproject-add input,
+.subproject-link-existing select {
+  padding: 0.45rem 0.6rem;
+  font: inherit;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+}
+
 /* ---- edit mode (PRD §11) ------------------------------------------------ */
 
 .summary-band.editing,
