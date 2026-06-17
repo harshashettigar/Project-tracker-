@@ -34,6 +34,23 @@ export const api = {
   createProject: (payload) => request('POST', '/api/projects', payload).then((d) => d.project),
   listUsers: () => request('GET', '/api/users').then((d) => d.users),
 
+  // Files (PRD §15). Upload uses multipart/form-data — do NOT set Content-Type;
+  // the browser adds the multipart boundary itself.
+  uploadFile: async (projectId, file) => {
+    const form = new FormData();
+    form.append('file', file);
+    const res = await fetch(`/api/projects/${projectId}/files`, {
+      method: 'POST',
+      headers: { ...(await authHeader()) },
+      body: form,
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || 'Upload failed.');
+    return data.file;
+  },
+  getFileUrl: (id) => request('GET', `/api/files/${id}/url`),
+  deleteFile: (id) => request('DELETE', `/api/files/${id}`),
+
   // Edit mode (PRD §11).
   updateProject: (id, patch) => request('PATCH', `/api/projects/${id}`, patch),
   addMilestone: (projectId, payload) =>
