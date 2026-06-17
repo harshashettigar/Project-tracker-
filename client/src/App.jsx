@@ -10,7 +10,7 @@
 import { useAuth } from './auth/AuthProvider.jsx';
 import Login from './screens/Login.jsx';
 import SetPassword from './screens/SetPassword.jsx';
-import AppShell from './components/AppShell.jsx';
+import ProjectList from './screens/ProjectList.jsx';
 
 export default function App() {
   const { session, profile, loading, recovery } = useAuth();
@@ -40,5 +40,5 @@ export default function App() {
     );
   }
 
-  return <AppShell />;
+  return <ProjectList />;
 }

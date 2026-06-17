@@ -306,3 +306,246 @@ body {
   margin: 0 auto;
   padding: 2rem 1.25rem;
 }
+
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+/* ---- project list (PRD §9) ---------------------------------------------- */
+
+.page-head h1 {
+  margin: 0 0 1rem;
+  font-size: 1.6rem;
+}
+
+.ghost-button {
+  padding: 0.55rem 0.9rem;
+  font: inherit;
+  font-weight: 600;
+  color: var(--text);
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.ghost-button:hover:not(:disabled) {
+  background: #eef2f7;
+}
+
+.filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+}
+
+.filter-search,
+.filter-row select {
+  padding: 0.5rem 0.7rem;
+  font: inherit;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.filter-search {
+  min-width: 220px;
+  flex: 1 1 220px;
+}
+
+.status-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+/* ---- status chips (PRD §7.2) -------------------------------------------- */
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+.chip-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+  flex: none;
+}
+
+/* Colour meaning is fixed everywhere (§7.2): grey / amber / blue / green / red. */
+.status-draft       { color: #5b6675; background: #eef0f3; }
+.status-in_progress { color: #9a6700; background: #fff4d6; }
+.status-on_hold     { color: #2f6f9e; background: #e4f0f8; }
+.status-completed   { color: #2e7d4f; background: #e3f5ea; }
+.status-at_risk     { color: #c0392b; background: #fdecea; }
+
+/* Status filter chips toggle on/off; "off" reads as de-selected. */
+.chip.toggle {
+  cursor: pointer;
+}
+
+.chip.toggle.off {
+  color: var(--muted-solid);
+  background: #f4f6f9;
+  opacity: 0.7;
+}
+
+/* ---- project table (PRD §9.3) ------------------------------------------- */
+
+.project-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.project-table th,
+.project-table td {
+  text-align: left;
+  padding: 0.6rem 0.8rem;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.9rem;
+}
+
+.project-table th {
+  background: #f7f9fc;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted-solid);
+}
+
+.project-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.project-table tbody tr:hover {
+  background: #f7f9fc;
+}
+
+.project-table .num {
+  font-family: ui-monospace, 'Cascadia Code', monospace;
+  color: var(--muted-solid);
+  width: 3rem;
+}
+
+.project-name {
+  font-weight: 600;
+}
+
+.owner-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.owner-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  font-weight: 600;
+  flex: none;
+}
+
+.row-actions {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.icon-button {
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 1rem;
+  padding: 0.2rem 0.4rem;
+}
+
+.icon-button:hover {
+  background: #eef2f7;
+}
+
+/* ---- empty states (PRD §19.2) ------------------------------------------- */
+
+.empty-state {
+  text-align: center;
+  padding: 3rem 1rem;
+  background: #fff;
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+}
+
+.empty-state h2 {
+  margin: 0 0 0.5rem;
+}
+
+.empty-state .primary-button {
+  margin-top: 1rem;
+}
+
+/* ---- modal (PRD §9.4) --------------------------------------------------- */
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(28, 58, 94, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  z-index: 60;
+}
+
+.modal {
+  width: 100%;
+  max-width: 440px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 18px 48px rgba(28, 58, 94, 0.25);
+  padding: 1.5rem;
+}
+
+.modal-title {
+  margin: 0 0 1rem;
+  font-size: 1.25rem;
+}
+
+.modal .field {
+  margin-bottom: 0.9rem;
+}
+
+.modal textarea,
+.modal select,
+.modal input {
+  width: 100%;
+  padding: 0.55rem 0.7rem;
+  font: inherit;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  margin-top: 0.5rem;
+}
