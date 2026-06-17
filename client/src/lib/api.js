@@ -33,4 +33,15 @@ export const api = {
   getProject: (id) => request('GET', `/api/projects/${id}`),
   createProject: (payload) => request('POST', '/api/projects', payload).then((d) => d.project),
   listUsers: () => request('GET', '/api/users').then((d) => d.users),
+
+  // Edit mode (PRD §11).
+  updateProject: (id, patch) => request('PATCH', `/api/projects/${id}`, patch),
+  addMilestone: (projectId, payload) =>
+    request('POST', `/api/projects/${projectId}/milestones`, payload),
+  updateMilestone: (id, patch) => request('PATCH', `/api/milestones/${id}`, patch),
+  deleteMilestone: (id) => request('DELETE', `/api/milestones/${id}`),
+  addTask: (projectId, payload) => request('POST', `/api/projects/${projectId}/tasks`, payload),
+  updateTask: (id, patch) => request('PATCH', `/api/tasks/${id}`, patch),
+  deleteTask: (id) => request('DELETE', `/api/tasks/${id}`),
+  postUpdate: (taskId, body) => request('POST', `/api/tasks/${taskId}/updates`, { body }),
 };

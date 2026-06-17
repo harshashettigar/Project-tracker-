@@ -100,6 +100,26 @@ app.get('/api/users', async (req, res) => {
   res.json({ ok: true, users: data });
 });
 
+// Canonical entity status set (PRD §7.2). Any write naming a status is checked.
+const STATUS_VALUES = new Set(['draft', 'in_progress', 'on_hold', 'completed', 'at_risk']);
+
+// Can the caller edit this project? Owner or admin (PRD §18). Reads the project
+// AS THE USER, so an invisible project also yields false. RLS is the real gate;
+// this gives a clean 403 instead of a silent policy rejection.
+async function canEditProject(supabase, profile, projectId) {
+  if (profile.role === 'admin') {
+    // Admin can edit any project that exists; confirm it does (RLS lets admin see all).
+    const { data } = await supabase.from('projects').select('id').eq('id', projectId).maybeSingle();
+    return !!data;
+  }
+  const { data } = await supabase
+    .from('projects')
+    .select('owner_user_id')
+    .eq('id', projectId)
+    .maybeSingle();
+  return !!data && data.owner_user_id === profile.id;
+}
+
 // Derived target date (PRD §12.2) for a set of project ids: the latest target
 // across each project's milestones and its direct (no-milestone) tasks, or null.
 // Computed from RLS-scoped child rows (not the bypassing view) — see decisions.md.
@@ -321,6 +341,272 @@ app.get('/api/projects/:id', async (req, res) => {
     files: files || [],
     subProjects: subs || [],
   });
+});
+
+// ==========================================================================
+// Edit mode (PRD §11). Every write acts AS THE USER, so RLS (can_edit_project,
+// append-only task_updates) is the real boundary; the canEditProject() checks
+// below just turn policy rejections into clean 403s. Target date is never
+// written — it stays derived (§12.2).
+// ==========================================================================
+
+// Edit the project summary + objective (§11.2). Owner/admin only. Owner may be
+// reassigned only by an admin (RLS WITH CHECK enforces this regardless).
+app.patch('/api/projects/:id', async (req, res) => {
+  const ctx = await requireActiveUser(req, res);
+  if (!ctx) return;
+  const { supabase, profile } = ctx;
+  const { id } = req.params;
+
+  if (!(await canEditProject(supabase, profile, id))) {
+    return res.status(403).json({ ok: false, error: 'not allowed' });
+  }
+
+  const patch = {};
+  if ('name' in req.body) {
+    const name = (req.body.name || '').trim();
+    if (!name) return res.status(400).json({ ok: false, error: 'Project name is required.' });
+    patch.name = name;
+  }
+  if ('objective' in req.body) patch.objective = req.body.objective?.trim() || null;
+  if ('start_date' in req.body) patch.start_date = req.body.start_date || null;
+  if ('status' in req.body) {
+    if (!STATUS_VALUES.has(req.body.status))
+      return res.status(400).json({ ok: false, error: 'Invalid status.' });
+    patch.status = req.body.status;
+  }
+  if ('owner_user_id' in req.body) {
+    if (profile.role !== 'admin')
+      return res.status(403).json({ ok: false, error: 'only an admin can reassign owner' });
+    patch.owner_user_id = req.body.owner_user_id;
+  }
+  if (Object.keys(patch).length === 0)
+    return res.status(400).json({ ok: false, error: 'nothing to update' });
+
+  const { error } = await supabase.from('projects').update(patch).eq('id', id);
+  if (error) return res.status(400).json({ ok: false, error: error.message });
+  res.json({ ok: true });
+});
+
+// Add a milestone (§11.3). Name + target date both required (§12.1/§19.1).
+app.post('/api/projects/:id/milestones', async (req, res) => {
+  const ctx = await requireActiveUser(req, res);
+  if (!ctx) return;
+  const { supabase, profile } = ctx;
+  const { id } = req.params;
+
+  if (!(await canEditProject(supabase, profile, id)))
+    return res.status(403).json({ ok: false, error: 'not allowed' });
+
+  const name = (req.body?.name || '').trim();
+  if (!name) return res.status(400).json({ ok: false, error: 'Milestone name is required.' });
+  if (!req.body?.target_date)
+    return res.status(400).json({ ok: false, error: 'Milestone target date is required.' });
+  const status = req.body.status && STATUS_VALUES.has(req.body.status) ? req.body.status : 'draft';
+
+  const { data, error } = await supabase
+    .from('milestones')
+    .insert({ project_id: id, name, target_date: req.body.target_date, status })
+    .select('id')
+    .single();
+  if (error) return res.status(400).json({ ok: false, error: error.message });
+  res.status(201).json({ ok: true, milestone: data });
+});
+
+// Edit a milestone (§11.2): rename, retarget, restatus, reorder. Target stays
+// required — it can't be cleared (§12.1).
+app.patch('/api/milestones/:id', async (req, res) => {
+  const ctx = await requireActiveUser(req, res);
+  if (!ctx) return;
+  const { supabase, profile } = ctx;
+  const { id } = req.params;
+
+  const { data: m } = await supabase
+    .from('milestones')
+    .select('project_id')
+    .eq('id', id)
+    .maybeSingle();
+  if (!m) return res.status(404).json({ ok: false, error: 'not found' });
+  if (!(await canEditProject(supabase, profile, m.project_id)))
+    return res.status(403).json({ ok: false, error: 'not allowed' });
+
+  const patch = {};
+  if ('name' in req.body) {
+    const name = (req.body.name || '').trim();
+    if (!name) return res.status(400).json({ ok: false, error: 'Milestone name is required.' });
+    patch.name = name;
+  }
+  if ('target_date' in req.body) {
+    if (!req.body.target_date)
+      return res.status(400).json({ ok: false, error: 'Milestone target date is required.' });
+    patch.target_date = req.body.target_date;
+  }
+  if ('status' in req.body) {
+    if (!STATUS_VALUES.has(req.body.status))
+      return res.status(400).json({ ok: false, error: 'Invalid status.' });
+    patch.status = req.body.status;
+  }
+  if ('sort_order' in req.body) patch.sort_order = req.body.sort_order;
+  if (Object.keys(patch).length === 0)
+    return res.status(400).json({ ok: false, error: 'nothing to update' });
+
+  const { error } = await supabase.from('milestones').update(patch).eq('id', id);
+  if (error) return res.status(400).json({ ok: false, error: error.message });
+  res.json({ ok: true });
+});
+
+app.delete('/api/milestones/:id', async (req, res) => {
+  const ctx = await requireActiveUser(req, res);
+  if (!ctx) return;
+  const { supabase, profile } = ctx;
+  const { id } = req.params;
+
+  const { data: m } = await supabase
+    .from('milestones')
+    .select('project_id')
+    .eq('id', id)
+    .maybeSingle();
+  if (!m) return res.status(404).json({ ok: false, error: 'not found' });
+  if (!(await canEditProject(supabase, profile, m.project_id)))
+    return res.status(403).json({ ok: false, error: 'not allowed' });
+
+  const { error } = await supabase.from('milestones').delete().eq('id', id);
+  if (error) return res.status(400).json({ ok: false, error: error.message });
+  res.json({ ok: true });
+});
+
+// Add a task (§11.3). Required fields are context-dependent (§12.1): a task with
+// no milestone needs a target date; a milestone-scoped task does not.
+app.post('/api/projects/:id/tasks', async (req, res) => {
+  const ctx = await requireActiveUser(req, res);
+  if (!ctx) return;
+  const { supabase, profile } = ctx;
+  const { id } = req.params;
+
+  if (!(await canEditProject(supabase, profile, id)))
+    return res.status(403).json({ ok: false, error: 'not allowed' });
+
+  const name = (req.body?.name || '').trim();
+  if (!name) return res.status(400).json({ ok: false, error: 'Task name is required.' });
+  const milestone_id = req.body?.milestone_id || null;
+  const target_date = req.body?.target_date || null;
+  if (!milestone_id && !target_date)
+    return res
+      .status(400)
+      .json({ ok: false, error: 'Target date is required for project-level tasks.' });
+  const status = req.body.status && STATUS_VALUES.has(req.body.status) ? req.body.status : 'draft';
+
+  const { data, error } = await supabase
+    .from('tasks')
+    .insert({
+      project_id: id,
+      milestone_id,
+      name,
+      start_date: req.body?.start_date || null,
+      target_date,
+      status,
+    })
+    .select('id')
+    .single();
+  if (error) return res.status(400).json({ ok: false, error: error.message });
+  res.status(201).json({ ok: true, task: data });
+});
+
+// Edit a task (§11.2). Re-validates §12.1 on the merged result so a project-level
+// task can never end up without a target date (the DB CHECK is the backstop).
+app.patch('/api/tasks/:id', async (req, res) => {
+  const ctx = await requireActiveUser(req, res);
+  if (!ctx) return;
+  const { supabase, profile } = ctx;
+  const { id } = req.params;
+
+  const { data: t } = await supabase
+    .from('tasks')
+    .select('project_id, milestone_id, target_date')
+    .eq('id', id)
+    .maybeSingle();
+  if (!t) return res.status(404).json({ ok: false, error: 'not found' });
+  if (!(await canEditProject(supabase, profile, t.project_id)))
+    return res.status(403).json({ ok: false, error: 'not allowed' });
+
+  const patch = {};
+  if ('name' in req.body) {
+    const name = (req.body.name || '').trim();
+    if (!name) return res.status(400).json({ ok: false, error: 'Task name is required.' });
+    patch.name = name;
+  }
+  if ('start_date' in req.body) patch.start_date = req.body.start_date || null;
+  if ('target_date' in req.body) patch.target_date = req.body.target_date || null;
+  if ('milestone_id' in req.body) patch.milestone_id = req.body.milestone_id || null;
+  if ('status' in req.body) {
+    if (!STATUS_VALUES.has(req.body.status))
+      return res.status(400).json({ ok: false, error: 'Invalid status.' });
+    patch.status = req.body.status;
+  }
+  if ('sort_order' in req.body) patch.sort_order = req.body.sort_order;
+  if (Object.keys(patch).length === 0)
+    return res.status(400).json({ ok: false, error: 'nothing to update' });
+
+  // §12.1: project-level (no milestone) task must keep a target date.
+  const milestoneAfter = 'milestone_id' in patch ? patch.milestone_id : t.milestone_id;
+  const targetAfter = 'target_date' in patch ? patch.target_date : t.target_date;
+  if (!milestoneAfter && !targetAfter)
+    return res
+      .status(400)
+      .json({ ok: false, error: 'Target date is required for project-level tasks.' });
+
+  const { error } = await supabase.from('tasks').update(patch).eq('id', id);
+  if (error) return res.status(400).json({ ok: false, error: error.message });
+  res.json({ ok: true });
+});
+
+app.delete('/api/tasks/:id', async (req, res) => {
+  const ctx = await requireActiveUser(req, res);
+  if (!ctx) return;
+  const { supabase, profile } = ctx;
+  const { id } = req.params;
+
+  const { data: t } = await supabase
+    .from('tasks')
+    .select('project_id')
+    .eq('id', id)
+    .maybeSingle();
+  if (!t) return res.status(404).json({ ok: false, error: 'not found' });
+  if (!(await canEditProject(supabase, profile, t.project_id)))
+    return res.status(403).json({ ok: false, error: 'not allowed' });
+
+  const { error } = await supabase.from('tasks').delete().eq('id', id);
+  if (error) return res.status(400).json({ ok: false, error: error.message });
+  res.json({ ok: true });
+});
+
+// Post a task update (§11.4/§13). Append-only — never overwrites. Authorship is
+// the project owner or an admin (RLS also enforces author = self + can_edit).
+app.post('/api/tasks/:id/updates', async (req, res) => {
+  const ctx = await requireActiveUser(req, res);
+  if (!ctx) return;
+  const { supabase, profile } = ctx;
+  const { id } = req.params;
+
+  const { data: t } = await supabase
+    .from('tasks')
+    .select('project_id')
+    .eq('id', id)
+    .maybeSingle();
+  if (!t) return res.status(404).json({ ok: false, error: 'not found' });
+  if (!(await canEditProject(supabase, profile, t.project_id)))
+    return res.status(403).json({ ok: false, error: 'not allowed' });
+
+  const body = (req.body?.body || '').trim();
+  if (!body) return res.status(400).json({ ok: false, error: 'Write an update first.' });
+
+  const { data, error } = await supabase
+    .from('task_updates')
+    .insert({ task_id: id, author_user_id: profile.id, body })
+    .select('id')
+    .single();
+  if (error) return res.status(400).json({ ok: false, error: error.message });
+  res.status(201).json({ ok: true, update: data });
 });
 
 const port = process.env.PORT || 4000;

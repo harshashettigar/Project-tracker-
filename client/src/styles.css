@@ -839,3 +839,164 @@ body {
 .subproject-link:hover {
   background: #f7f9fc;
 }
+
+/* ---- edit mode (PRD §11) ------------------------------------------------ */
+
+.summary-band.editing,
+.milestone-header.editing {
+  display: block;
+}
+
+/* Compact field grid reused by summary/milestone/task editors and add forms. */
+.edit-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap: 0.75rem;
+  align-items: end;
+}
+
+.edit-grid .field {
+  margin: 0;
+}
+
+.edit-grid input,
+.edit-grid select,
+.add-form input,
+.add-form select,
+.summary-band.editing textarea,
+.add-form textarea {
+  width: 100%;
+  padding: 0.45rem 0.6rem;
+  font: inherit;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.objective-field {
+  margin-top: 0.9rem;
+}
+
+.objective-field textarea {
+  width: 100%;
+}
+
+.summary-edit-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.derived-note {
+  font-size: 0.82rem;
+}
+
+.edit-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.6rem;
+}
+
+.reorder {
+  border: 1px solid var(--border);
+  background: #fff;
+  border-radius: 6px;
+  padding: 0.25rem 0.5rem;
+  cursor: pointer;
+  font-size: 0.8rem;
+}
+
+.reorder:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.primary-button.small,
+.ghost-button.small,
+.danger-button.small {
+  padding: 0.35rem 0.7rem;
+  font-size: 0.85rem;
+}
+
+.danger-button {
+  padding: 0.5rem 0.9rem;
+  font: inherit;
+  font-weight: 600;
+  color: var(--error);
+  background: #fff;
+  border: 1px solid #f0c3bd;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.danger-button:hover:not(:disabled) {
+  background: #fdecea;
+}
+
+.milestone-tasks {
+  padding: 0.5rem 1rem 1rem;
+}
+
+.task-editor {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.8rem;
+  margin-bottom: 0.8rem;
+}
+
+.add-affordance {
+  background: #eef2f7;
+  border: 1px dashed var(--accent);
+  color: var(--accent);
+  border-radius: 8px;
+  padding: 0.5rem 0.9rem;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.add-affordance:hover {
+  background: #e3ecf6;
+}
+
+.milestone-add {
+  display: block;
+  margin: 0 0 1rem;
+}
+
+.add-form {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.8rem;
+  margin-top: 0.4rem;
+  background: #f7f9fc;
+}
+
+/* Update composer (§11.4). */
+.composer {
+  margin: 0.6rem 0;
+}
+
+.composer textarea {
+  width: 100%;
+  padding: 0.55rem 0.7rem;
+  font: inherit;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.composer-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  margin-top: 0.5rem;
+}
+
+@media (max-width: 720px) {
+  .edit-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
