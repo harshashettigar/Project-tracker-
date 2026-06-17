@@ -76,6 +76,17 @@ client/  server/  db/
 4. **Done means:** matches the PRD section + its empty/error states; validation wording matches PRD §19.1; access enforced server/DB-side; canonical vocab used; branch merged to `main`; `SESSION_STATUS.md` updated.
 5. **End:** merge `feature/<slice>` → `main`, rewrite `SESSION_STATUS.md`, append any decision to `docs/decisions.md`, commit.
 
+## Office-network gotcha
+
+The office network blocks outbound PostgreSQL ports (5432/6543) and the direct DB
+host is IPv6-only/unreachable, so `supabase db push`, `psql`, and direct `pg`
+connections time out here. HTTPS (443) is open. **DB tooling therefore runs over
+HTTPS via the Supabase Management API** — see `server/scripts/run-sql-api.mjs`
+(needs `SUPABASE_ACCESS_TOKEN` in `.env`) and the README "If the Postgres ports
+are blocked" section. `setup:auth` already uses the HTTPS admin API. On a network
+where the Postgres ports are reachable, `server/scripts/run-sql.mjs` does the same
+over a direct connection via `DATABASE_URL`.
+
 ## Git gotcha
 
 Claude Code commits to a **feature branch**; the local dev server shows `main` until you **merge**.

@@ -1,0 +1,13 @@
+# Supabase CLI configuration. Link to the hosted project with:
+#   supabase link --project-ref <your-project-ref>
+# Migrations live in ./migrations; ./seed.sql loads after `supabase db reset`.
+
+project_id = "project-tracker"
+
+[db]
+# Port used by the local shadow/diff database (not the hosted project).
+port = 54322
+
+[db.seed]
+enabled = true
+sql_paths = ["./seed.sql"]
