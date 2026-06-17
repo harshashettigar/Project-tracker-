@@ -112,6 +112,20 @@ _None queued._ v1 build order is complete. Candidate follow-ups if work continue
 
 ## Session log (newest first)
 
+- **2026-06-17 (post-v1, perf)** — Reduced page latency on the two hot endpoints
+  (server-side; client already parallelised). (1) Dropped the per-request
+  `supabase.auth.getUser()` round-trip in `requireActiveUser` (~200ms each, on
+  every call) — now decode the JWT `sub` locally and let the RLS profile read be
+  the validity gate (PostgREST still verifies sig+expiry; expired → 401). (2)
+  `GET /api/projects/:id`: users + parent lookups now run in the same parallel
+  wave as milestones/tasks/files/subs, and the derived target is computed in
+  memory from already-loaded rows (dropped the 2 `deriveTargets` queries) — ~6
+  serial waves → 3. (3) `GET /api/projects`: users fetch parallel with
+  `deriveTargets`. Verified in browser (data correct, no console errors).
+  Investigated direct Postgres (DATABASE_URL): host is IPv6-only / `ENOTFOUND`
+  even off the office network — not firewall-related; app speed is bounded by
+  HTTPS round-trips to remote Supabase. Single-round-trip RPC option offered and
+  declined for now (left as-is).
 - **2026-06-17 (post-v1)** — Two fixes on `feature/update-edit`, merged to `main`.
   (1) Stuck save buttons: `setBusy(false)` only ran on error in SummaryEditor,
   MilestoneEditor, TaskEditor, UpdateComposer — moved to `finally`. (2) Editable
