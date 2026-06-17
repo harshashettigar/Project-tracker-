@@ -228,9 +228,39 @@ app.get('/api/projects', async (req, res) => {
   res.json({ ok: true, projects: rows });
 });
 
+// Validate a prospective parent for a sub-project link (PRD §14). The caller must
+// be able to edit the parent, the parent must itself be top-level (one level
+// only), and the child (if it already exists) must have no children of its own.
+// Returns null if OK, or { status, error } to send. The DB trigger is the final
+// backstop; this just yields clean messages.
+async function validateParentLink(supabase, profile, parentId, childId) {
+  if (childId && parentId === childId)
+    return { status: 400, error: "A project can't be its own parent." };
+  if (!(await canEditProject(supabase, profile, parentId)))
+    return { status: 403, error: 'You can only nest under a project you can edit.' };
+  const { data: parent } = await supabase
+    .from('projects')
+    .select('parent_project_id')
+    .eq('id', parentId)
+    .maybeSingle();
+  if (!parent) return { status: 400, error: 'Parent project not found.' };
+  if (parent.parent_project_id)
+    return { status: 400, error: 'Sub-projects are one level only.' };
+  if (childId) {
+    const { count } = await supabase
+      .from('projects')
+      .select('*', { count: 'exact', head: true })
+      .eq('parent_project_id', childId);
+    if (count > 0)
+      return { status: 400, error: 'This project has sub-projects and cannot become one.' };
+  }
+  return null;
+}
+
 // Create a project (PRD §9.4). Name required; owner defaults to the caller; new
 // projects start as Draft with no target date (derived later). Viewers cannot
 // create (PRD §18) — enforced here at the API, and RLS still gates ownership.
+// An optional parent_project_id makes it a sub-project (§14, one level only).
 app.post('/api/projects', async (req, res) => {
   const ctx = await requireActiveUser(req, res);
   if (!ctx) return;
@@ -253,9 +283,15 @@ app.post('/api/projects', async (req, res) => {
   // Default start date to today (server clock) when the client omits it.
   const start_date = req.body?.start_date || new Date().toISOString().slice(0, 10);
 
+  const parent_project_id = req.body?.parent_project_id || null;
+  if (parent_project_id) {
+    const bad = await validateParentLink(supabase, profile, parent_project_id, null);
+    if (bad) return res.status(bad.status).json({ ok: false, error: bad.error });
+  }
+
   const { data, error } = await supabase
     .from('projects')
-    .insert({ name, objective, owner_user_id, start_date, status: 'draft' })
+    .insert({ name, objective, owner_user_id, start_date, status: 'draft', parent_project_id })
     .select('id, name, status, start_date, owner_user_id')
     .single();
   if (error) return res.status(400).json({ ok: false, error: error.message });
@@ -435,6 +471,15 @@ app.patch('/api/projects/:id', async (req, res) => {
     if (profile.role !== 'admin')
       return res.status(403).json({ ok: false, error: 'only an admin can reassign owner' });
     patch.owner_user_id = req.body.owner_user_id;
+  }
+  // Link / unlink as a sub-project (§14). Null detaches (back to top-level).
+  if ('parent_project_id' in req.body) {
+    const newParent = req.body.parent_project_id || null;
+    if (newParent) {
+      const bad = await validateParentLink(supabase, profile, newParent, id);
+      if (bad) return res.status(bad.status).json({ ok: false, error: bad.error });
+    }
+    patch.parent_project_id = newParent;
   }
   if (Object.keys(patch).length === 0)
     return res.status(400).json({ ok: false, error: 'nothing to update' });

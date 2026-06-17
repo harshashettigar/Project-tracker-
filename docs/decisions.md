@@ -66,3 +66,9 @@
 
 \- Phase 5: this slice implements PROJECT-level attachments (the "Additional Files" strip). Per §15 the schema also allows milestone/task-scoped files (`attachments.milestone_id`/`task_id`); attaching at those levels is deferred (not required for v1 review flow).
 
+\- Phase 6: sub-project link/unlink is just `PATCH /api/projects/:id { parent_project_id }` (null = unlink → back to top-level); "add new sub-project" is `POST /api/projects` with `parent_project_id`. No new endpoints. The one-level rule + capability are checked in the API (`validateParentLink`: caller can edit the parent, parent is top-level, child has no children, no self-parent) for clean messages, with the existing depth trigger as the DB backstop.
+
+\- Phase 6: linking requires edit rights on BOTH the parent and the child (you can only nest projects you control, or admin). Unlink needs edit rights on the child only. "Remove" in the UI = unlink (detach), never delete the child project.
+
+\- Phase 6: the link-existing candidate list comes from `GET /api/projects` (top-level, visible) filtered client-side to projects the caller owns (or admin) and excluding self + current children. Add/link controls are hidden when the project is itself a sub-project (one level); the DB trigger backstops it.
+

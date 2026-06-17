@@ -15,6 +15,7 @@ import Avatar from '../components/Avatar.jsx';
 import TaskUpdateThread from '../components/TaskUpdateThread.jsx';
 import FilesSection from '../components/FilesSection.jsx';
 import SummaryEditor from '../components/edit/SummaryEditor.jsx';
+import SubProjectsEditor from '../components/edit/SubProjectsEditor.jsx';
 import MilestoneEditor from '../components/edit/MilestoneEditor.jsx';
 import AddMilestoneForm from '../components/edit/AddMilestoneForm.jsx';
 import AddTaskForm from '../components/edit/AddTaskForm.jsx';
@@ -350,25 +351,34 @@ export default function ProjectDetail({ projectId, initialMode = 'view', onNavig
           {/* Additional files (§10.2/§15): in-app viewer; attach/remove in Edit. */}
           <FilesSection projectId={project.id} files={data.files} editing={editing} reload={reload} />
 
-          {/* Sub-projects (§10.2/§14) — links; add/link/remove in Phase 6. */}
-          {data.subProjects.length > 0 && (
-            <section className="strip">
-              <h2 className="section-title">Sub Projects</h2>
-              <ul className="subproject-strip">
-                {data.subProjects.map((sp) => (
-                  <li key={sp.id}>
-                    <button
-                      type="button"
-                      className="subproject-link"
-                      onClick={() => onNavigate({ name: 'detail', id: sp.id })}
-                    >
-                      {sp.name}
-                      <StatusChip status={sp.status} />
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </section>
+          {/* Sub-projects (§10.2/§14): read-only links in View; manage in Edit. */}
+          {editing ? (
+            <SubProjectsEditor
+              project={project}
+              subProjects={data.subProjects}
+              onNavigate={onNavigate}
+              reload={reload}
+            />
+          ) : (
+            data.subProjects.length > 0 && (
+              <section className="strip">
+                <h2 className="section-title">Sub Projects</h2>
+                <ul className="subproject-strip">
+                  {data.subProjects.map((sp) => (
+                    <li key={sp.id}>
+                      <button
+                        type="button"
+                        className="subproject-link"
+                        onClick={() => onNavigate({ name: 'detail', id: sp.id })}
+                      >
+                        {sp.name}
+                        <StatusChip status={sp.status} />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )
           )}
         </>
       )}
