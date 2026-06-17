@@ -1,0 +1,1241 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{font-family:'IBM Plex Sans',system-ui,sans-serif;color:#1f2d3d;background:#eef1f4;-webkit-font-smoothing:antialiased}
+  input,select,textarea,button{font-family:inherit}
+  input:focus,select:focus,textarea:focus{outline:none}
+  ::-webkit-scrollbar{width:10px;height:10px}
+  ::-webkit-scrollbar-thumb{background:#cdd5dd;border-radius:6px;border:2px solid transparent;background-clip:content-box}
+  @keyframes ovl{from{opacity:0}to{opacity:1}}
+  @keyframes pop{from{opacity:0;transform:translateY(10px) scale(.99)}to{opacity:1;transform:none}}
+  @keyframes slideup{from{opacity:0;transform:translate(-50%,12px)}to{opacity:1;transform:transl(-50%,0)}}
+  @keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</helmet>
+
+<div style="min-height:100vh">
+
+  <sc-if value="{{ notLogin }}" hint-placeholder-val="{{ true }}">
+  <!-- ================= TOP BAR ================= -->
+  <header style="height:58px;background:#1c3a5e;color:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 26px;position:sticky;top:0;z-index:50;box-shadow:0 1px 0 rgba(0,0,0,.18)">
+    <div style="display:flex;align-items:center;gap:13px;min-width:0">
+      <div style="width:34px;height:34px;border-radius:8px;background:#fff;display:flex;align-items:center;justify-content:center;flex:none;padding:4px">
+        <img src="assets/msc-logo.png" alt="Manipal Specialty Chemicals" style="width:100%;height:100%;object-fit:contain">
+      </div>
+      <sc-if value="{{ isList }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex;flex-direction:column;line-height:1.1">
+          <span style="font-weight:600;font-size:15px;letter-spacing:.2px">{{ orgName }}</span>
+          <span style="font-size:11px;color:rgba(255,255,255,.6)">Project Tracker</span>
+        </div>
+      </sc-if>
+      <sc-if value="{{ isDetail }}">
+        <div style="display:flex;align-items:center;gap:9px;font-size:13.5px;min-width:0">
+          <span onClick="{{ backToList }}" style="color:rgba(255,255,255,.72);cursor:pointer">Project Tracker</span>
+          <span style="color:rgba(255,255,255,.4)">/</span>
+          <sc-if value="{{ detail.hasParent }}">
+            <span data-id="{{ detail.parentId }}" data-mode="view" onClick="{{ openProject }}" style="color:rgba(255,255,255,.72);cursor:pointer">{{ detail.parentName }}</span>
+            <span style="color:rgba(255,255,255,.4)">/</span>
+          </sc-if>
+          <span style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ detail.name }}</span>
+        </div>
+      </sc-if>
+      <sc-if value="{{ isAdmin }}">
+        <div style="display:flex;align-items:center;gap:9px;font-size:13.5px;min-width:0">
+          <span onClick="{{ backToList }}" style="color:rgba(255,255,255,.72);cursor:pointer">Project Tracker</span>
+          <span style="color:rgba(255,255,255,.4)">/</span>
+          <span style="font-weight:600;white-space:nowrap">Admin</span>
+        </div>
+      </sc-if>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:16px;flex:none">
+      <sc-if value="{{ isList }}" hint-placeholder-val="{{ true }}">
+        <button onClick="{{ openNewProject }}" style="display:inline-flex;align-items:center;gap:7px;background:#fff;color:#1c3a5e;border:none;border-radius:7px;padding:8px 14px;font:600 13px 'IBM Plex Sans';cursor:pointer">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"></path></svg>New project
+        </button>
+      </sc-if>
+      <sc-if value="{{ isDetail }}">
+        <div style="display:inline-flex;background:rgba(255,255,255,.12);border-radius:8px;padding:3px;gap:2px">
+          <button data-mode="view" onClick="{{ setMode }}" style="{{ detail.viewBtnStyle }}">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"></path><circle cx="12" cy="12" r="3"></circle></svg>View
+          </button>
+          <button data-mode="edit" onClick="{{ setMode }}" style="{{ detail.editBtnStyle }}">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"></path></svg>Edit
+          </button>
+        </div>
+      </sc-if>
+      <button onClick="{{ toggleAccount }}" style="display:flex;align-items:center;gap:7px;background:transparent;border:none;cursor:pointer;padding:0">
+        <span style="width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:#fff">{{ currentUser.initials }}</span>
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.7)" stroke-width="2.2"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+    </div>
+  </header>
+  </sc-if>
+
+  <!-- ================= ACCOUNT MENU ================= -->
+  <sc-if value="{{ accountOpen }}">
+    <div onClick="{{ closeAccount }}" style="position:fixed;inset:0;z-index:90"></div>
+    <div style="position:fixed;top:54px;right:20px;z-index:95;background:#fff;border:1px solid #e4e9ee;border-radius:12px;box-shadow:0 16px 40px rgba(20,40,60,.2);width:252px;overflow:hidden;animation:pop .15s ease">
+      <div style="padding:14px 16px;border-bottom:1px solid #eef1f4;display:flex;align-items:center;gap:11px">
+        <span style="width:38px;height:38px;border-radius:50%;background:#1c3a5e;color:#fff;display:flex;align-items:center;justify-content:center;font:600 13px 'IBM Plex Sans';flex:none">{{ currentUser.initials }}</span>
+        <div style="min-width:0"><div style="font-weight:600;font-size:13.5px;color:#1c3a5e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ currentUser.name }}</div><div style="font-size:11.5px;color:#8a96a3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ currentUser.email }}</div></div>
+      </div>
+      <div style="padding:6px">
+        <sc-if value="{{ currentUser.isAdmin }}">
+          <button onClick="{{ openAdmin }}" style="display:flex;align-items:center;gap:10px;width:100%;text-align:left;border:none;background:transparent;border-radius:8px;padding:9px 11px;font:600 13px 'IBM Plex Sans';color:#33414f;cursor:pointer" style-hover="background:#f4f6f8"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2b6aa8" stroke-width="1.9"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Admin<span style="margin-left:auto;font:600 9.5px 'IBM Plex Sans';letter-spacing:.04em;text-transform:uppercase;color:#6b4ea8;background:#efe9f7;border-radius:5px;padding:2px 6px">Admin</span></button>
+        </sc-if>
+        <button onClick="{{ signOut }}" style="display:flex;align-items:center;gap:10px;width:100%;text-align:left;border:none;background:transparent;border-radius:8px;padding:9px 11px;font:600 13px 'IBM Plex Sans';color:#b42318;cursor:pointer" style-hover="background:#fcefed"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>Sign out</button>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- ================= LOGIN ================= -->
+  <sc-if value="{{ isLogin }}" hint-placeholder-val="{{ true }}">
+  <div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;gap:18px;background:radial-gradient(ellipse at top,#f4f7fa,#e6eaee)">
+    <div style="{{ login.frameStyle }}">
+      <div style="{{ login.cardStyle }}">
+        <div style="background:linear-gradient(140deg,#26527e 0%,#1c3a5e 72%);padding:28px 30px 24px;color:#fff;display:flex;align-items:center;gap:13px">
+          <div style="width:48px;height:48px;border-radius:12px;background:#fff;display:flex;align-items:center;justify-content:center;flex:none;padding:6px"><img src="assets/msc-logo.png" alt="Manipal Specialty Chemicals" style="width:100%;height:100%;object-fit:contain"></div>
+          <div style="line-height:1.25"><div style="font-weight:700;font-size:18px;letter-spacing:.2px">Project Tracker</div><div style="font-size:12px;color:rgba(255,255,255,.62)">Manipal Specialty Chemicals</div></div>
+        </div>
+        <div style="padding:26px 30px 26px">
+          <h1 style="margin:0 0 3px;font-size:17px;font-weight:700;color:#1c3a5e">Sign in</h1>
+          <p style="margin:0 0 18px;font-size:13px;color:#8a96a3;line-height:1.5">Use your work email to access the tracker.</p>
+          <sc-if value="{{ login.hasError }}"><div style="display:flex;align-items:flex-start;gap:9px;background:#fcebe9;border:1px solid #f1c7c1;border-radius:9px;padding:10px 12px;margin-bottom:16px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#b42318" stroke-width="2" style="flex:none;margin-top:1px"><circle cx="12" cy="12" r="10"/><path d="M12 8v5M12 16h.01"/></svg><span style="font-size:12.5px;color:#b42318;line-height:1.45;font-weight:500">{{ login.error }}</span></div></sc-if>
+          <label style="display:flex;flex-direction:column;gap:6px;margin-bottom:14px"><span style="font:600 11px 'IBM Plex Sans';text-transform:uppercase;letter-spacing:.05em;color:#8a96a3">Email</span><input type="email" value="{{ login.email }}" onInput="{{ onLoginEmail }}" placeholder="you@manipalsplchem.com" style="border:1px solid #d8dee5;border-radius:8px;padding:10px 12px;font-size:14px;color:#1f2d3d" style-focus="border-color:#2b6aa8"/></label>
+          <label style="display:flex;flex-direction:column;gap:6px;margin-bottom:6px"><span style="font:600 11px 'IBM Plex Sans';text-transform:uppercase;letter-spacing:.05em;color:#8a96a3">Password</span><div style="position:relative;display:flex;align-items:center"><input type="{{ login.pwType }}" value="{{ login.pwd }}" onInput="{{ onLoginPwd }}" placeholder="Enter your password" style="border:1px solid #d8dee5;border-radius:8px;padding:10px 42px 10px 12px;font-size:14px;color:#1f2d3d;width:100%" style-focus="border-color:#2b6aa8"/><button onClick="{{ toggleShowPwd }}" type="button" title="Show or hide password" style="position:absolute;right:6px;width:32px;height:32px;border:none;background:transparent;color:#8a96a3;display:flex;align-items:center;justify-content:center;cursor:pointer;border-radius:6px" style-hover="color:#2b6aa8"><sc-if value="{{ login.showPwd }}"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20C5 20 1 12 1 12a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><path d="M1 1l22 22"/></svg></sc-if><sc-if value="{{ login.hidePwd }}"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg></sc-if></button></div></label>
+          <div style="display:flex;justify-content:flex-end;margin-bottom:18px"><span onClick="{{ forgotPwd }}" style="font-size:12.5px;color:#2b6aa8;cursor:pointer;font-weight:600">Forgot password?</span></div>
+          <button onClick="{{ signIn }}" style="{{ login.btnStyle }}"><sc-if value="{{ login.loading }}"><span style="width:15px;height:15px;border:2px solid rgba(255,255,255,.45);border-top-color:#fff;border-radius:50%;display:inline-block;animation:spin .7s linear infinite"></span>Signing in…</sc-if><sc-if value="{{ login.idle }}">Sign in</sc-if></button>
+          <p style="margin:16px 0 0;text-align:center;font-size:11.5px;color:#aab4be;line-height:1.6">Internal &amp; invite-only access.<br/>Demo — any user email, password <span style="font:500 11.5px 'IBM Plex Mono';color:#8a96a3">tracker</span></p>
+        </div>
+      </div>
+    </div>
+    <div style="display:inline-flex;align-items:center;gap:6px;background:#fff;border:1px solid #e4e9ee;border-radius:999px;padding:5px 7px;box-shadow:0 2px 6px rgba(20,40,60,.06)"><span style="font-size:11px;color:#8a96a3;font-weight:600;padding:0 4px 0 6px">Preview</span><button data-m="0" onClick="{{ setPreviewMobile }}" style="{{ login.deskTabStyle }}">Desktop</button><button data-m="1" onClick="{{ setPreviewMobile }}" style="{{ login.mobTabStyle }}">Mobile</button></div>
+  </div>
+  </sc-if>
+
+  <!-- ================= LIST SCREEN ================= -->
+  <sc-if value="{{ isList }}" hint-placeholder-val="{{ true }}">
+  <div style="max-width:1320px;margin:0 auto;padding:30px 32px 64px">
+    <!-- filter row -->
+    <div style="margin-top:0;background:#fff;border:1px solid #e4e9ee;border-radius:11px;padding:14px 16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;box-shadow:0 1px 2px rgba(20,40,60,.04)">
+      <div style="display:flex;align-items:center;gap:8px;background:#f4f6f8;border:1px solid #e4e9ee;border-radius:8px;padding:0 11px;height:38px;min-width:240px;flex:1 1 240px;max-width:340px">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.3-4.3"></path></svg>
+        <input value="{{ searchValue }}" onInput="{{ setSearch }}" placeholder="Search projects…" style="border:none;background:transparent;font-size:13.5px;width:100%;color:#1f2d3d">
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:#8a96a3">Owner</span>
+        <select value="{{ ownerValue }}" onChange="{{ setOwner }}" style="height:38px;border:1px solid #e4e9ee;border-radius:8px;background:#fff;padding:0 10px;font-size:13.5px;color:#33414f;cursor:pointer">
+          <option value="all">All owners</option>
+          <sc-for list="{{ owners }}" as="o" hint-placeholder-count="3"><option value="{{ o }}">{{ o }}</option></sc-for>
+        </select>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <span style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:#8a96a3">Status</span>
+        <sc-for list="{{ statusOptions }}" as="opt" hint-placeholder-count="5">
+          <button data-status="{{ opt.label }}" onClick="{{ toggleStatus }}" style="{{ opt.btnStyle }}">
+            <span style="width:7px;height:7px;border-radius:50%;background:{{ opt.dot }}"></span>{{ opt.label }}
+          </button>
+        </sc-for>
+      </div>
+    </div>
+
+    <sc-if value="{{ hasFilters }}">
+      <div style="margin-top:11px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <span style="font-size:12px;color:#8a96a3">Filtered by</span>
+        <sc-for list="{{ activeChips }}" as="ch" hint-placeholder-count="2">
+          <span style="display:inline-flex;align-items:center;gap:6px;background:#eef2f7;border:1px solid #d8e0e9;border-radius:999px;padding:3px 6px 3px 10px;font-size:12px;color:#3a6291;font-weight:500">
+            {{ ch.label }}
+            <span data-chip="{{ ch.chip }}" onClick="{{ removeChip }}" style="cursor:pointer;display:inline-flex;color:#7d93ab"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M18 6L6 18M6 6l12 12"></path></svg></span>
+          </span>
+        </sc-for>
+        <span onClick="{{ clearFilters }}" style="font-size:12px;color:#2b6aa8;cursor:pointer;font-weight:600">Clear all</span>
+      </div>
+    </sc-if>
+
+    <!-- table -->
+    <div style="margin-top:16px;background:#fff;border:1px solid #e4e9ee;border-radius:11px;overflow:hidden;box-shadow:0 1px 2px rgba(20,40,60,.04)">
+      <div style="display:grid;grid-template-columns:54px minmax(0,1fr) 120px 120px 140px 180px 92px;align-items:center;background:#f7f9fb;border-bottom:1px solid #e4e9ee;padding:11px 18px;font:600 11px/1 'IBM Plex Sans';letter-spacing:.06em;text-transform:uppercase;color:#7c8896">
+        <span>Sl</span><span>Project name</span><span>Start date</span><span>Target date</span><span>Status</span><span>Responsible</span><span></span>
+      </div>
+      <sc-for list="{{ rows }}" as="row" hint-placeholder-count="3">
+        <div style="display:grid;grid-template-columns:54px minmax(0,1fr) 120px 120px 140px 180px 92px;align-items:center;padding:{{ rowPad }};border-bottom:1px solid #eef1f4;font-size:13.5px" style-hover="background:#f6f9fc">
+          <span style="font:500 13px 'IBM Plex Mono';color:#9aa6b2">{{ row.sl }}</span>
+          <span style="display:flex;align-items:center;gap:9px;min-width:0">
+            <span data-id="{{ row.id }}" data-mode="view" onClick="{{ openProject }}" style="font-weight:600;color:#1c3a5e;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" style-hover="text-decoration:underline">{{ row.name }}</span>
+            <sc-if value="{{ row.isDraft }}"><span style="font:600 10px 'IBM Plex Sans';letter-spacing:.05em;text-transform:uppercase;color:#8a96a3;border:1px solid #d8dee5;border-radius:4px;padding:1px 5px">Draft</span></sc-if>
+          </span>
+          <span style="font:500 13px 'IBM Plex Mono';color:#46535f">{{ row.startFmt }}</span>
+          <span style="font:500 13px 'IBM Plex Mono';color:#46535f">{{ row.targetFmt }}</span>
+          <span><span style="display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font:600 12px 'IBM Plex Sans';background:{{ row.chipBg }};color:{{ row.chipFg }}"><span style="width:7px;height:7px;border-radius:50%;background:{{ row.chipDot }}"></span>{{ row.status }}</span></span>
+          <span style="display:flex;align-items:center;gap:9px;min-width:0">
+            <span style="width:26px;height:26px;border-radius:50%;background:#eef2f7;color:#3a6291;display:flex;align-items:center;justify-content:center;font:600 11px 'IBM Plex Sans';flex:none">{{ row.ownerInitials }}</span>
+            <span style="color:#46535f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ row.owner }}</span>
+          </span>
+          <span style="display:flex;align-items:center;gap:7px;justify-content:flex-end">
+            <button data-id="{{ row.id }}" data-mode="view" onClick="{{ openProject }}" title="View" style="width:30px;height:30px;border:1px solid #e0e6ec;border-radius:7px;background:#fff;color:#5b6b7b;display:flex;align-items:center;justify-content:center;cursor:pointer" style-hover="border-color:#2b6aa8;color:#2b6aa8"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"></path><circle cx="12" cy="12" r="3"></circle></svg></button>
+            <button data-id="{{ row.id }}" data-mode="edit" onClick="{{ openProject }}" title="Edit" style="width:30px;height:30px;border:1px solid #e0e6ec;border-radius:7px;background:#fff;color:#5b6b7b;display:flex;align-items:center;justify-content:center;cursor:pointer" style-hover="border-color:#2b6aa8;color:#2b6aa8"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"></path></svg></button>
+          </span>
+        </div>
+      </sc-for>
+      <sc-if value="{{ resultEmpty }}">
+        <div style="padding:54px 20px;text-align:center;color:#8a96a3">
+          <div style="font-size:15px;font-weight:600;color:#5b6b7b">No projects match your filters</div>
+          <div style="font-size:13px;margin-top:5px">Try clearing filters or search.</div>
+          <button onClick="{{ clearFilters }}" style="margin-top:14px;border:1px solid #d8dee5;background:#fff;color:#33414f;border-radius:7px;padding:8px 14px;font:600 13px 'IBM Plex Sans';cursor:pointer">Clear all filters</button>
+        </div>
+      </sc-if>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- ================= DETAIL SCREEN ================= -->
+  <sc-if value="{{ isDetail }}">
+  <div style="max-width:1080px;margin:0 auto;padding:26px 32px 80px">
+
+    <!-- summary band -->
+    <div style="background:#fff;border:1px solid #e4e9ee;border-radius:13px;padding:22px 24px;box-shadow:0 1px 3px rgba(20,40,60,.05)">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:20px;flex-wrap:wrap">
+        <div style="min-width:200px;flex:1 1 260px">
+          <sc-if value="{{ detail.isView }}">
+            <h1 style="margin:0;font-size:24px;font-weight:700;color:#1c3a5e">{{ detail.name }}</h1>
+          </sc-if>
+          <sc-if value="{{ detail.isEdit }}">
+            <input data-target="project|name" defaultValue="{{ detail.name }}" onBlur="{{ commitEdit }}" style="font-size:24px;font-weight:700;color:#1c3a5e;border:1px solid transparent;border-radius:7px;padding:3px 8px;margin:-3px -8px;width:100%;background:#f7f9fb" style-focus="border-color:#2b6aa8;background:#fff">
+          </sc-if>
+        </div>
+        <div style="flex:none;display:flex;flex-direction:column;gap:6px;align-items:flex-end;max-width:100%">
+          <div style="display:flex;align-items:center;gap:8px"><span style="font:600 10px 'IBM Plex Sans';text-transform:uppercase;letter-spacing:.06em;color:#8a96a3">Filter by status</span><sc-if value="{{ detail.filterActive }}"><span onClick="{{ clearDetailStatus }}" style="font-size:11px;color:#2b6aa8;cursor:pointer;font-weight:600">Clear</span></sc-if></div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end;max-width:430px"><sc-for list="{{ detail.statusFilters }}" as="sf" hint-placeholder-count="5"><button data-status="{{ sf.label }}" onClick="{{ toggleDetailStatus }}" style="{{ sf.btnStyle }}"><span style="width:6px;height:6px;border-radius:50%;background:{{ sf.dot }}"></span>{{ sf.label }}</button></sc-for></div>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-wrap:wrap;gap:30px;margin-top:18px">
+        <div style="display:flex;flex-direction:column;gap:5px">
+          <span style="font:600 10.5px 'IBM Plex Sans';text-transform:uppercase;letter-spacing:.07em;color:#8a96a3">Start date</span>
+          <sc-if value="{{ detail.isView }}"><span style="font:500 14px 'IBM Plex Mono';color:#2b3947">{{ detail.startFmt }}</span></sc-if>
+          <sc-if value="{{ detail.isEdit }}"><input type="date" data-target="project|start" defaultValue="{{ detail.start }}" onBlur="{{ commitEdit }}" style="font:500 13px 'IBM Plex Mono';border:1px solid #d8dee5;border-radius:6px;padding:5px 8px;color:#2b3947"></sc-if>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:5px">
+          <span style="font:600 10.5px 'IBM Plex Sans';text-transform:uppercase;letter-spacing:.07em;color:#8a96a3;display:flex;align-items:center;gap:5px">Target date
+            <span style="display:inline-flex;align-items:center;gap:3px;background:#eef2f7;color:#7d93ab;border-radius:4px;padding:1px 5px;font-size:9px;letter-spacing:.03em"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>Auto</span>
+          </span>
+          <span style="font:500 14px 'IBM Plex Mono';color:#2b3947">{{ detail.targetFmt }}</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:5px">
+          <span style="font:600 10.5px 'IBM Plex Sans';text-transform:uppercase;letter-spacing:.07em;color:#8a96a3">Status</span>
+          <sc-if value="{{ detail.isView }}"><span style="display:inline-flex;align-items:center;gap:6px;padding:4px 11px;border-radius:999px;font:600 12.5px 'IBM Plex Sans';background:{{ detail.chipBg }};color:{{ detail.chipFg }};width:fit-content"><span style="width:7px;height:7px;border-radius:50%;background:{{ detail.chipDot }}"></span>{{ detail.status }}</span></sc-if>
+          <sc-if value="{{ detail.isEdit }}"><select data-target="project|status" value="{{ detail.status }}" onChange="{{ commitEdit }}" style="border:1px solid #d8dee5;border-radius:6px;padding:5px 8px;font-size:13px;color:#2b3947;cursor:pointer"><sc-for list="{{ statusList }}" as="st" hint-placeholder-count="5"><option value="{{ st }}">{{ st }}</option></sc-for></select></sc-if>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:5px">
+          <span style="font:600 10.5px 'IBM Plex Sans';text-transform:uppercase;letter-spacing:.07em;color:#8a96a3">Responsible</span>
+          <sc-if value="{{ detail.isView }}"><span style="display:flex;align-items:center;gap:8px"><span style="width:26px;height:26px;border-radius:50%;background:#eef2f7;color:#3a6291;display:flex;align-items:center;justify-content:center;font:600 11px 'IBM Plex Sans'">{{ detail.ownerInitials }}</span><span style="font-size:14px;color:#2b3947">{{ detail.owner }}</span></span></sc-if>
+          <sc-if value="{{ detail.isEdit }}"><select data-target="project|owner" value="{{ detail.owner }}" onChange="{{ commitEdit }}" style="border:1px solid #d8dee5;border-radius:6px;padding:5px 8px;font-size:13px;color:#2b3947;cursor:pointer"><sc-for list="{{ team }}" as="tm" hint-placeholder-count="5"><option value="{{ tm }}">{{ tm }}</option></sc-for></select></sc-if>
+        </div>
+      </div>
+
+      <!-- objective -->
+      <div style="margin-top:20px;padding-top:18px;border-top:1px solid #eef1f4">
+        <span style="font:600 10.5px 'IBM Plex Sans';text-transform:uppercase;letter-spacing:.07em;color:#8a96a3">Objective</span>
+        <sc-if value="{{ detail.isView }}">
+          <p style="margin:7px 0 0;font-size:14px;line-height:1.6;color:#41505e;max-width:760px">{{ detail.objective }}</p>
+        </sc-if>
+        <sc-if value="{{ detail.isEdit }}">
+          <textarea data-target="project|objective" defaultValue="{{ detail.objective }}" onBlur="{{ commitEdit }}" rows="3" style="margin-top:7px;width:100%;max-width:760px;border:1px solid #d8dee5;border-radius:8px;padding:9px 11px;font:400 14px/1.6 'IBM Plex Sans';color:#41505e;resize:vertical" style-focus="border-color:#2b6aa8"></textarea>
+        </sc-if>
+      </div>
+    </div>
+
+    <!-- MILESTONES -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin:28px 2px 0">
+      <h2 style="margin:0;font-size:15px;font-weight:700;color:#1c3a5e;letter-spacing:.01em">Milestones</h2>
+      <sc-if value="{{ detail.isEdit }}">
+        <button onClick="{{ openAddMilestone }}" style="display:inline-flex;align-items:center;gap:6px;background:{{ accent }};color:#fff;border:none;border-radius:7px;padding:7px 13px;font:600 12.5px 'IBM Plex Sans';cursor:pointer"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"></path></svg>Add milestone</button>
+      </sc-if>
+    </div>
+
+    <sc-if value="{{ detail.addingMilestone }}">
+      <div style="margin-top:12px;background:#f7f9fb;border:1px dashed #bcc8d4;border-radius:11px;padding:15px 16px">
+        <div style="font:600 12px 'IBM Plex Sans';color:#5b6b7b;margin-bottom:10px;text-transform:uppercase;letter-spacing:.05em">New milestone</div>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end">
+          <label style="display:flex;flex-direction:column;gap:5px;flex:1 1 240px"><span style="font-size:11px;color:#8a96a3;font-weight:600">Milestone name</span><input data-field="m_name" onInput="{{ draftInput }}" placeholder="e.g. Pilot-scale validation" style="border:1px solid #d8dee5;border-radius:7px;padding:8px 10px;font-size:13.5px"></label>
+          <label style="display:flex;flex-direction:column;gap:5px"><span style="font-size:11px;color:#8a96a3;font-weight:600">Target date <span style="color:#c0392b">*</span></span><input type="date" data-field="m_target" onInput="{{ draftInput }}" style="border:1px solid #d8dee5;border-radius:7px;padding:7px 10px;font:500 13px 'IBM Plex Mono'"></label>
+          <label style="display:flex;flex-direction:column;gap:5px"><span style="font-size:11px;color:#8a96a3;font-weight:600">Status</span><select data-field="m_status" onChange="{{ draftInput }}" style="border:1px solid #d8dee5;border-radius:7px;padding:8px 10px;font-size:13px;cursor:pointer"><sc-for list="{{ statusList }}" as="st" hint-placeholder-count="5"><option value="{{ st }}">{{ st }}</option></sc-for></select></label>
+          <div style="display:flex;gap:8px">
+            <button onClick="{{ submitAddMilestone }}" style="background:{{ accent }};color:#fff;border:none;border-radius:7px;padding:8px 15px;font:600 13px 'IBM Plex Sans';cursor:pointer">Add</button>
+            <button onClick="{{ cancelAddMilestone }}" style="background:#fff;color:#5b6b7b;border:1px solid #d8dee5;border-radius:7px;padding:8px 14px;font:600 13px 'IBM Plex Sans';cursor:pointer">Cancel</button>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ detail.noFilterMatch }}">
+      <div style="margin-top:14px;border:1px dashed #cdd6df;border-radius:11px;padding:30px 20px;text-align:center;background:#fafbfc;color:#8a96a3"><div style="font-size:14px;font-weight:600;color:#5b6b7b">Nothing matches this status filter</div><div style="font-size:12.5px;margin-top:4px">No milestones or tasks have the selected status.</div><button onClick="{{ clearDetailStatus }}" style="margin-top:12px;border:1px solid #d8dee5;background:#fff;color:#33414f;border-radius:7px;padding:7px 13px;font:600 12.5px 'IBM Plex Sans';cursor:pointer">Clear filter</button></div>
+    </sc-if>
+    <sc-for list="{{ detail.milestones }}" as="m" hint-placeholder-count="2">
+      <div style="margin-top:14px;border:1px solid #e0e6ec;border-radius:11px;overflow:hidden;background:#fff;box-shadow:0 1px 2px rgba(20,40,60,.04)">
+        <!-- milestone header -->
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;background:#eef2f7;border-bottom:1px solid #e0e6ec;padding:12px 16px">
+          <div style="display:flex;align-items:center;gap:12px;min-width:0;flex-wrap:nowrap;overflow:hidden">
+            <sc-if value="{{ detail.isView }}"><span style="font-weight:600;font-size:14.5px;color:#1c3a5e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ m.name }}</span></sc-if>
+            <sc-if value="{{ detail.isEdit }}"><input data-target="milestone|{{ m.id }}|name" defaultValue="{{ m.name }}" onBlur="{{ commitEdit }}" style="font-weight:600;font-size:14px;color:#1c3a5e;border:1px solid #d3dbe3;border-radius:6px;padding:4px 8px;background:#fff"></sc-if>
+            <span style="display:inline-flex;align-items:center;gap:5px;font:500 12px 'IBM Plex Mono';color:#5e7186;flex:none;white-space:nowrap"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="3" y="4" width="18" height="18" rx="2"></rect><path d="M16 2v4M8 2v4M3 10h18"></path></svg>{{ m.targetFmt }}</span>
+            <span style="display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;font:600 11.5px 'IBM Plex Sans';flex:none;white-space:nowrap;background:{{ m.chipBg }};color:{{ m.chipFg }}"><span style="width:6px;height:6px;border-radius:50%;background:{{ m.chipDot }}"></span>{{ m.status }}</span>
+          </div>
+          <sc-if value="{{ detail.isEdit }}">
+            <div style="display:flex;align-items:center;gap:7px;flex:none">
+              <button data-id="{{ m.id }}" onClick="{{ openAddTask }}" style="display:inline-flex;align-items:center;gap:5px;background:#fff;color:#2b6aa8;border:1px solid #c3d2e2;border-radius:6px;padding:5px 10px;font:600 12px 'IBM Plex Sans';cursor:pointer"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"></path></svg>Add task</button>
+              <button data-id="{{ m.id }}" onClick="{{ removeMilestone }}" title="Remove milestone" style="width:28px;height:28px;border:1px solid #e0e6ec;border-radius:6px;background:#fff;color:#9aa6b2;display:flex;align-items:center;justify-content:center;cursor:pointer" style-hover="color:#c0392b;border-color:#e6b8b3"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path></svg></button>
+            </div>
+          </sc-if>
+        </div>
+
+        <!-- task table header -->
+        <div style="display:grid;grid-template-columns:{{ cols }};column-gap:10px;align-items:center;padding:9px 16px;background:#fafbfc;border-bottom:1px solid #eef1f4;font:600 10.5px 'IBM Plex Sans';text-transform:uppercase;letter-spacing:.06em;color:#8a96a3">
+          <span>Task name</span><span>Start</span><span>Target</span><span>Status</span><span></span>
+        </div>
+
+        <sc-for list="{{ m.tasks }}" as="t" hint-placeholder-count="2">
+          <div style="border-bottom:1px solid #f2f4f7">
+            <div style="display:grid;grid-template-columns:{{ cols }};column-gap:10px;align-items:center;padding:{{ rowPad }}">
+              <span style="display:flex;align-items:center;gap:8px;min-width:0">
+                <span data-id="{{ t.id }}" onClick="{{ toggleTask }}" style="cursor:pointer;display:inline-flex;color:#9aa6b2;flex:none"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M9 6l6 6-6 6"></path></svg></span>
+                <sc-if value="{{ detail.isView }}"><span data-id="{{ t.id }}" onClick="{{ toggleTask }}" style="font-weight:500;font-size:13.5px;color:#2b3947;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ t.name }}</span></sc-if>
+                <sc-if value="{{ detail.isEdit }}"><input data-target="task|{{ t.id }}|name" defaultValue="{{ t.name }}" onBlur="{{ commitEdit }}" style="font-weight:500;font-size:13.5px;color:#2b3947;border:1px solid #e0e6ec;border-radius:6px;padding:4px 8px;width:100%;background:#fff" style-focus="border-color:#2b6aa8"></sc-if>
+              </span>
+              <sc-if value="{{ detail.isView }}"><span style="font:500 13px 'IBM Plex Mono';color:#5e6b77">{{ t.startFmt }}</span></sc-if>
+              <sc-if value="{{ detail.isEdit }}"><input type="date" data-target="task|{{ t.id }}|start" defaultValue="{{ t.start }}" onBlur="{{ commitEdit }}" style="font:500 12px 'IBM Plex Mono';border:1px solid #e0e6ec;border-radius:6px;padding:4px 6px;width:100%"></sc-if>
+              <sc-if value="{{ detail.isView }}"><span style="font:500 13px 'IBM Plex Mono';color:#5e6b77">{{ t.targetFmt }}</span></sc-if>
+              <sc-if value="{{ detail.isEdit }}"><input type="date" data-target="task|{{ t.id }}|target" defaultValue="{{ t.target }}" onBlur="{{ commitEdit }}" style="font:500 12px 'IBM Plex Mono';border:1px solid #e0e6ec;border-radius:6px;padding:4px 6px;width:100%"></sc-if>
+              <sc-if value="{{ detail.isView }}"><span><span style="display:inline-flex;align-items:center;gap:6px;padding:3px 9px;border-radius:999px;font:600 11.5px 'IBM Plex Sans';background:{{ t.chipBg }};color:{{ t.chipFg }}"><span style="width:6px;height:6px;border-radius:50%;background:{{ t.chipDot }}"></span>{{ t.status }}</span></span></sc-if>
+              <sc-if value="{{ detail.isEdit }}"><select data-target="task|{{ t.id }}|status" value="{{ t.status }}" onChange="{{ commitEdit }}" style="border:1px solid #e0e6ec;border-radius:6px;padding:4px 6px;font-size:12px;cursor:pointer;width:100%"><sc-for list="{{ statusList }}" as="st" hint-placeholder-count="5"><option value="{{ st }}">{{ st }}</option></sc-for></select></sc-if>
+              <span style="display:flex;justify-content:flex-end">
+                <sc-if value="{{ detail.isEdit }}"><button data-id="{{ t.id }}" onClick="{{ removeTask }}" title="Remove task" style="width:26px;height:26px;border:1px solid #e8ebef;border-radius:6px;background:#fff;color:#9aa6b2;display:flex;align-items:center;justify-content:center;cursor:pointer" style-hover="color:#c0392b;border-color:#e6b8b3"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path></svg></button></sc-if>
+              </span>
+            </div>
+
+            <!-- latest update strip -->
+            <div style="padding:0 16px 12px 39px">
+              <sc-if value="{{ t.hasLatest }}">
+                <div data-id="{{ t.id }}" onClick="{{ toggleTask }}" style="{{ t.latest.metaStyle }};border-radius:7px;padding:8px 12px;cursor:pointer;display:flex;align-items:flex-start;gap:10px">
+                  <div style="flex:1;min-width:0">
+                    <span style="font:600 10.5px 'IBM Plex Sans';text-transform:uppercase;letter-spacing:.05em;color:#a8620a">Latest update</span>
+                    <div style="font-size:13px;color:#3b4956;line-height:1.5;margin-top:2px">{{ t.latest.text }}</div>
+                    <div style="font-size:11.5px;color:#8a96a3;margin-top:3px">{{ t.latest.author }} · {{ t.latest.dateFmt }}</div>
+                  </div>
+                  <span style="font-size:11.5px;color:#2b6aa8;font-weight:600;white-space:nowrap;display:flex;align-items:center;gap:3px">History<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 9l6 6 6-6"></path></svg></span>
+                </div>
+              </sc-if>
+              <sc-if value="{{ t.showPrev }}">
+                <div style="margin-top:7px;background:#fff;border:1px solid #e6eaef;border-left:3px solid #cdd5dd;border-radius:7px;padding:8px 12px">
+                  <span style="font:600 10.5px 'IBM Plex Sans';text-transform:uppercase;letter-spacing:.05em;color:#9aa6b2">Previous update</span>
+                  <div style="font-size:13px;color:#5e6b77;line-height:1.5;margin-top:2px">{{ t.prev.text }}</div>
+                  <div style="font-size:11.5px;color:#a8b2bd;margin-top:3px">{{ t.prev.author }} · {{ t.prev.dateFmt }}</div>
+                </div>
+              </sc-if>
+              <sc-if value="{{ t.expanded }}">
+                <div style="margin-top:8px;padding-left:6px;border-left:2px solid #eef1f4;display:flex;flex-direction:column;gap:8px">
+                  <span style="font:600 10.5px 'IBM Plex Sans';text-transform:uppercase;letter-spacing:.05em;color:#8a96a3;padding-left:6px">Update history</span>
+                  <sc-for list="{{ t.history }}" as="u" hint-placeholder-count="2">
+                    <div style="{{ u.metaStyle }};border-radius:7px;padding:8px 11px;display:flex;gap:10px;align-items:flex-start">
+                      <span style="width:24px;height:24px;border-radius:50%;background:#eef2f7;color:#3a6291;display:flex;align-items:center;justify-content:center;font:600 10px 'IBM Plex Sans';flex:none">{{ u.authorInitials }}</span>
+                      <div style="flex:1;min-width:0">
+                        <div style="font-size:13px;color:#3b4956;line-height:1.5">{{ u.text }}</div>
+                        <div style="font-size:11.5px;color:#8a96a3;margin-top:3px">{{ u.author }} · {{ u.dateFmt }}</div>
+                      </div>
+                    </div>
+                  </sc-for>
+                </div>
+              </sc-if>
+              <sc-if value="{{ detail.isEdit }}">
+                <sc-if value="{{ t.composerOpen }}">
+                  <div style="margin-top:9px;background:#f7f9fb;border:1px solid #d8dee5;border-radius:8px;padding:10px">
+                    <textarea data-field="update" onInput="{{ draftInput }}" defaultValue="{{ t.latestText }}" rows="2" placeholder="Post an update — this becomes the latest entry…" style="width:100%;border:1px solid #d8dee5;border-radius:6px;padding:8px 10px;font:400 13px/1.5 'IBM Plex Sans';resize:vertical" style-focus="border-color:#2b6aa8"></textarea>
+                    <div style="display:flex;gap:8px;margin-top:8px">
+                      <button data-id="{{ t.id }}" onClick="{{ submitUpdate }}" style="background:{{ accent }};color:#fff;border:none;border-radius:6px;padding:7px 14px;font:600 12.5px 'IBM Plex Sans';cursor:pointer">Post update</button>
+                      <button onClick="{{ cancelComposer }}" style="background:#fff;color:#5b6b7b;border:1px solid #d8dee5;border-radius:6px;padding:7px 13px;font:600 12.5px 'IBM Plex Sans';cursor:pointer">Cancel</button>
+                    </div>
+                  </div>
+                </sc-if>
+                <sc-if value="{{ t.composerOpen }}" hint-placeholder-val=""></sc-if>
+              </sc-if>
+              <sc-if value="{{ detail.isEdit }}">
+                <div style="margin-top:7px">
+                  <button data-id="{{ t.id }}" onClick="{{ openComposer }}" style="display:inline-flex;align-items:center;gap:5px;background:transparent;border:none;color:#2b6aa8;font:600 12px 'IBM Plex Sans';cursor:pointer;padding:0"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"></path></svg>Add update</button>
+                </div>
+              </sc-if>
+            </div>
+          </div>
+        </sc-for>
+
+        <sc-if value="{{ m.addOpen }}">
+          <div style="padding:13px 16px;background:#f7f9fb;border-top:1px solid #eef1f4;display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
+            <label style="display:flex;flex-direction:column;gap:4px;flex:1 1 200px"><span style="font-size:11px;color:#8a96a3;font-weight:600">Task name</span><input data-field="at_name" onInput="{{ draftInput }}" placeholder="New task" style="border:1px solid #d8dee5;border-radius:6px;padding:7px 9px;font-size:13px"></label>
+            <label style="display:flex;flex-direction:column;gap:4px"><span style="font-size:11px;color:#8a96a3;font-weight:600">Start</span><input type="date" data-field="at_start" onInput="{{ draftInput }}" style="border:1px solid #d8dee5;border-radius:6px;padding:6px 8px;font:500 12px 'IBM Plex Mono'"></label>
+            <label style="display:flex;flex-direction:column;gap:4px"><span style="font-size:11px;color:#8a96a3;font-weight:600">Target <span style="color:#9aa6b2">(optional)</span></span><input type="date" data-field="at_target" onInput="{{ draftInput }}" style="border:1px solid #d8dee5;border-radius:6px;padding:6px 8px;font:500 12px 'IBM Plex Mono'"></label>
+            <label style="display:flex;flex-direction:column;gap:4px"><span style="font-size:11px;color:#8a96a3;font-weight:600">Status</span><select data-field="at_status" onChange="{{ draftInput }}" style="border:1px solid #d8dee5;border-radius:6px;padding:7px 8px;font-size:12px;cursor:pointer"><sc-for list="{{ statusList }}" as="st" hint-placeholder-count="5"><option value="{{ st }}">{{ st }}</option></sc-for></select></label>
+            <div style="display:flex;gap:8px"><button data-scope="{{ m.id }}" onClick="{{ submitAddTask }}" style="background:{{ accent }};color:#fff;border:none;border-radius:6px;padding:7px 14px;font:600 12.5px 'IBM Plex Sans';cursor:pointer">Add task</button><button onClick="{{ cancelAddTask }}" style="background:#fff;color:#5b6b7b;border:1px solid #d8dee5;border-radius:6px;padding:7px 12px;font:600 12.5px 'IBM Plex Sans';cursor:pointer">Cancel</button></div>
+          </div>
+        </sc-if>
+        <sc-if value="{{ m.hasTasks }}" hint-placeholder-val="{{ true }}"></sc-if>
+      </div>
+    </sc-for>
+
+    <!-- PROJECT-LEVEL TASKS -->
+    <div style="margin-top:24px;border:1px solid #e0e6ec;border-radius:11px;overflow:hidden;background:#fff;box-shadow:0 1px 2px rgba(20,40,60,.04)">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:#fafbfc;border-bottom:1px solid #eef1f4">
+        <span style="font-weight:600;font-size:14px;color:#1c3a5e">Project tasks <span style="font-weight:400;font-size:12.5px;color:#8a96a3">· no milestone</span></span>
+        <sc-if value="{{ detail.isEdit }}"><button data-id="direct" onClick="{{ openAddTask }}" style="display:inline-flex;align-items:center;gap:5px;background:#fff;color:#2b6aa8;border:1px solid #c3d2e2;border-radius:6px;padding:5px 10px;font:600 12px 'IBM Plex Sans';cursor:pointer"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"></path></svg>Add task</button></sc-if>
+      </div>
+      <div style="display:grid;grid-template-columns:{{ cols }};column-gap:10px;align-items:center;padding:9px 16px;border-bottom:1px solid #eef1f4;font:600 10.5px 'IBM Plex Sans';text-transform:uppercase;letter-spacing:.06em;color:#8a96a3">
+        <span>Task name</span><span>Start</span><span>Target</span><span>Status</span><span></span>
+      </div>
+      <sc-for list="{{ detail.directTasks }}" as="t" hint-placeholder-count="1">
+        <div style="border-bottom:1px solid #f2f4f7">
+          <div style="display:grid;grid-template-columns:{{ cols }};column-gap:10px;align-items:center;padding:{{ rowPad }}">
+            <span style="display:flex;align-items:center;gap:8px;min-width:0">
+              <span data-id="{{ t.id }}" onClick="{{ toggleTask }}" style="cursor:pointer;display:inline-flex;color:#9aa6b2;flex:none"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M9 6l6 6-6 6"></path></svg></span>
+              <sc-if value="{{ detail.isView }}"><span data-id="{{ t.id }}" onClick="{{ toggleTask }}" style="font-weight:500;font-size:13.5px;color:#2b3947;cursor:pointer">{{ t.name }}</span></sc-if>
+              <sc-if value="{{ detail.isEdit }}"><input data-target="task|{{ t.id }}|name" defaultValue="{{ t.name }}" onBlur="{{ commitEdit }}" style="font-weight:500;font-size:13.5px;color:#2b3947;border:1px solid #e0e6ec;border-radius:6px;padding:4px 8px;width:100%;background:#fff"></sc-if>
+            </span>
+            <sc-if value="{{ detail.isView }}"><span style="font:500 13px 'IBM Plex Mono';color:#5e6b77">{{ t.startFmt }}</span></sc-if>
+            <sc-if value="{{ detail.isEdit }}"><input type="date" data-target="task|{{ t.id }}|start" defaultValue="{{ t.start }}" onBlur="{{ commitEdit }}" style="font:500 12px 'IBM Plex Mono';border:1px solid #e0e6ec;border-radius:6px;padding:4px 6px;width:100%"></sc-if>
+            <sc-if value="{{ detail.isView }}"><span style="font:500 13px 'IBM Plex Mono';color:#5e6b77">{{ t.targetFmt }}</span></sc-if>
+            <sc-if value="{{ detail.isEdit }}"><input type="date" data-target="task|{{ t.id }}|target" defaultValue="{{ t.target }}" onBlur="{{ commitEdit }}" style="font:500 12px 'IBM Plex Mono';border:1px solid #e0e6ec;border-radius:6px;padding:4px 6px;width:100%"></sc-if>
+            <sc-if value="{{ detail.isView }}"><span><span style="display:inline-flex;align-items:center;gap:6px;padding:3px 9px;border-radius:999px;font:600 11.5px 'IBM Plex Sans';background:{{ t.chipBg }};color:{{ t.chipFg }}"><span style="width:6px;height:6px;border-radius:50%;background:{{ t.chipDot }}"></span>{{ t.status }}</span></span></sc-if>
+            <sc-if value="{{ detail.isEdit }}"><select data-target="task|{{ t.id }}|status" value="{{ t.status }}" onChange="{{ commitEdit }}" style="border:1px solid #e0e6ec;border-radius:6px;padding:4px 6px;font-size:12px;cursor:pointer;width:100%"><sc-for list="{{ statusList }}" as="st" hint-placeholder-count="5"><option value="{{ st }}">{{ st }}</option></sc-for></select></sc-if>
+            <span style="display:flex;justify-content:flex-end"><sc-if value="{{ detail.isEdit }}"><button data-id="{{ t.id }}" onClick="{{ removeTask }}" style="width:26px;height:26px;border:1px solid #e8ebef;border-radius:6px;background:#fff;color:#9aa6b2;display:flex;align-items:center;justify-content:center;cursor:pointer" style-hover="color:#c0392b;border-color:#e6b8b3"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path></svg></button></sc-if></span>
+          </div>
+          <div style="padding:0 16px 12px 39px">
+            <sc-if value="{{ t.hasLatest }}">
+              <div data-id="{{ t.id }}" onClick="{{ toggleTask }}" style="{{ t.latest.metaStyle }};border-radius:7px;padding:8px 12px;cursor:pointer;display:flex;align-items:flex-start;gap:10px">
+                <div style="flex:1;min-width:0"><span style="font:600 10.5px 'IBM Plex Sans';text-transform:uppercase;letter-spacing:.05em;color:#a8620a">Latest update</span><div style="font-size:13px;color:#3b4956;line-height:1.5;margin-top:2px">{{ t.latest.text }}</div><div style="font-size:11.5px;color:#8a96a3;margin-top:3px">{{ t.latest.author }} · {{ t.latest.dateFmt }}</div></div>
+                <span style="font-size:11.5px;color:#2b6aa8;font-weight:600;white-space:nowrap;display:flex;align-items:center;gap:3px">History<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 9l6 6 6-6"></path></svg></span>
+              </div>
+            </sc-if>
+            <sc-if value="{{ t.showPrev }}">
+              <div style="margin-top:7px;background:#fff;border:1px solid #e6eaef;border-left:3px solid #cdd5dd;border-radius:7px;padding:8px 12px"><span style="font:600 10.5px 'IBM Plex Sans';text-transform:uppercase;letter-spacing:.05em;color:#9aa6b2">Previous update</span><div style="font-size:13px;color:#5e6b77;line-height:1.5;margin-top:2px">{{ t.prev.text }}</div><div style="font-size:11.5px;color:#a8b2bd;margin-top:3px">{{ t.prev.author }} · {{ t.prev.dateFmt }}</div></div>
+            </sc-if>
+            <sc-if value="{{ t.expanded }}">
+              <div style="margin-top:8px;padding-left:6px;border-left:2px solid #eef1f4;display:flex;flex-direction:column;gap:8px">
+                <sc-for list="{{ t.history }}" as="u" hint-placeholder-count="1">
+                  <div style="{{ u.metaStyle }};border-radius:7px;padding:8px 11px;display:flex;gap:10px;align-items:flex-start"><span style="width:24px;height:24px;border-radius:50%;background:#eef2f7;color:#3a6291;display:flex;align-items:center;justify-content:center;font:600 10px 'IBM Plex Sans';flex:none">{{ u.authorInitials }}</span><div style="flex:1;min-width:0"><div style="font-size:13px;color:#3b4956;line-height:1.5">{{ u.text }}</div><div style="font-size:11.5px;color:#8a96a3;margin-top:3px">{{ u.author }} · {{ u.dateFmt }}</div></div></div>
+                </sc-for>
+              </div>
+            </sc-if>
+            <sc-if value="{{ detail.isEdit }}">
+              <sc-if value="{{ t.composerOpen }}">
+                <div style="margin-top:9px;background:#f7f9fb;border:1px solid #d8dee5;border-radius:8px;padding:10px"><textarea data-field="update" onInput="{{ draftInput }}" defaultValue="{{ t.latestText }}" rows="2" placeholder="Post an update…" style="width:100%;border:1px solid #d8dee5;border-radius:6px;padding:8px 10px;font:400 13px/1.5 'IBM Plex Sans';resize:vertical"></textarea><div style="display:flex;gap:8px;margin-top:8px"><button data-id="{{ t.id }}" onClick="{{ submitUpdate }}" style="background:{{ accent }};color:#fff;border:none;border-radius:6px;padding:7px 14px;font:600 12.5px 'IBM Plex Sans';cursor:pointer">Post update</button><button onClick="{{ cancelComposer }}" style="background:#fff;color:#5b6b7b;border:1px solid #d8dee5;border-radius:6px;padding:7px 13px;font:600 12.5px 'IBM Plex Sans';cursor:pointer">Cancel</button></div></div>
+              </sc-if>
+              <div style="margin-top:7px"><button data-id="{{ t.id }}" onClick="{{ openComposer }}" style="display:inline-flex;align-items:center;gap:5px;background:transparent;border:none;color:#2b6aa8;font:600 12px 'IBM Plex Sans';cursor:pointer;padding:0"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"></path></svg>Add update</button></div>
+            </sc-if>
+          </div>
+        </div>
+      </sc-for>
+      <sc-if value="{{ detail.directAddOpen }}">
+        <div style="padding:13px 16px;background:#f7f9fb;border-top:1px solid #eef1f4;display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
+          <label style="display:flex;flex-direction:column;gap:4px;flex:1 1 200px"><span style="font-size:11px;color:#8a96a3;font-weight:600">Task name</span><input data-field="at_name" onInput="{{ draftInput }}" placeholder="New task" style="border:1px solid #d8dee5;border-radius:6px;padding:7px 9px;font-size:13px"></label>
+          <label style="display:flex;flex-direction:column;gap:4px"><span style="font-size:11px;color:#8a96a3;font-weight:600">Start</span><input type="date" data-field="at_start" onInput="{{ draftInput }}" style="border:1px solid #d8dee5;border-radius:6px;padding:6px 8px;font:500 12px 'IBM Plex Mono'"></label>
+          <label style="display:flex;flex-direction:column;gap:4px"><span style="font-size:11px;color:#8a96a3;font-weight:600">Target <span style="color:#c0392b">*</span></span><input type="date" data-field="at_target" onInput="{{ draftInput }}" style="border:1px solid #d8dee5;border-radius:6px;padding:6px 8px;font:500 12px 'IBM Plex Mono'"></label>
+          <label style="display:flex;flex-direction:column;gap:4px"><span style="font-size:11px;color:#8a96a3;font-weight:600">Status</span><select data-field="at_status" onChange="{{ draftInput }}" style="border:1px solid #d8dee5;border-radius:6px;padding:7px 8px;font-size:12px;cursor:pointer"><sc-for list="{{ statusList }}" as="st" hint-placeholder-count="5"><option value="{{ st }}">{{ st }}</option></sc-for></select></label>
+          <div style="display:flex;gap:8px"><button data-scope="direct" onClick="{{ submitAddTask }}" style="background:{{ accent }};color:#fff;border:none;border-radius:6px;padding:7px 14px;font:600 12.5px 'IBM Plex Sans';cursor:pointer">Add task</button><button onClick="{{ cancelAddTask }}" style="background:#fff;color:#5b6b7b;border:1px solid #d8dee5;border-radius:6px;padding:7px 12px;font:600 12.5px 'IBM Plex Sans';cursor:pointer">Cancel</button></div>
+        </div>
+      </sc-if>
+      <sc-if value="{{ detail.hasDirect }}" hint-placeholder-val="{{ true }}"></sc-if>
+    </div>
+
+    <!-- FILES + SUBPROJECTS -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:24px">
+      <!-- files -->
+      <div style="background:#fff;border:1px solid #e0e6ec;border-radius:11px;padding:16px 18px;box-shadow:0 1px 2px rgba(20,40,60,.04)">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+          <span style="font-weight:600;font-size:14px;color:#1c3a5e">Additional files</span>
+          <sc-if value="{{ detail.isEdit }}">
+            <div style="display:flex;gap:8px">
+              <button onClick="{{ download }}" style="display:inline-flex;align-items:center;gap:5px;background:#fff;color:#2b6aa8;border:1px solid #c3d2e2;border-radius:6px;padding:5px 9px;font:600 11.5px 'IBM Plex Sans';cursor:pointer"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"></path></svg>Attach</button>
+              <button onClick="{{ openSheet }}" style="display:inline-flex;align-items:center;gap:5px;background:#fff;color:#2b6aa8;border:1px solid #c3d2e2;border-radius:6px;padding:5px 9px;font:600 11.5px 'IBM Plex Sans';cursor:pointer"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"></rect><path d="M3 9h18M3 15h18M9 3v18M15 3v18"></path></svg>New sheet</button>
+            </div>
+          </sc-if>
+        </div>
+        <sc-for list="{{ detail.files }}" as="f" hint-placeholder-count="3">
+          <div data-id="{{ f.id }}" onClick="{{ openFile }}" style="display:flex;align-items:center;gap:11px;padding:9px 11px;border:1px solid #eef1f4;border-radius:9px;margin-bottom:8px;cursor:pointer;transition:.12s" style-hover="border-color:#c3d2e2;background:#fafcfe">
+            <span style="width:34px;height:34px;border-radius:7px;background:{{ f.iconBg }};color:{{ f.iconFg }};display:flex;align-items:center;justify-content:center;flex:none">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6"></path></svg>
+            </span>
+            <div style="flex:1;min-width:0">
+              <div style="font-weight:500;font-size:13px;color:#2b3947;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ f.name }}</div>
+              <div style="font-size:11.5px;color:#8a96a3">{{ f.typeLabel }} · {{ f.size }} · {{ f.by }}</div>
+            </div>
+            <sc-if value="{{ detail.isEdit }}"><button data-id="{{ f.id }}" onClick="{{ removeFile }}" style="width:24px;height:24px;border:none;background:transparent;color:#b3bdc7;display:flex;align-items:center;justify-content:center;cursor:pointer;flex:none" style-hover="color:#c0392b"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"></path></svg></button></sc-if>
+            <sc-if value="{{ detail.isView }}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#b3bdc7" stroke-width="2" style="flex:none"><path d="M9 6l6 6-6 6"></path></svg></sc-if>
+          </div>
+        </sc-for>
+        <sc-if value="{{ detail.hasFiles }}" hint-placeholder-val="{{ true }}"></sc-if>
+      </div>
+
+      <!-- subprojects -->
+      <div style="background:#fff;border:1px solid #e0e6ec;border-radius:11px;padding:16px 18px;box-shadow:0 1px 2px rgba(20,40,60,.04)">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+          <span style="font-weight:600;font-size:14px;color:#1c3a5e">Sub-projects</span>
+          <sc-if value="{{ detail.isEdit }}"><button onClick="{{ download }}" style="display:inline-flex;align-items:center;gap:5px;background:#fff;color:#2b6aa8;border:1px solid #c3d2e2;border-radius:6px;padding:5px 9px;font:600 11.5px 'IBM Plex Sans';cursor:pointer"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"></path></svg>Link</button></sc-if>
+        </div>
+        <sc-for list="{{ detail.subProjects }}" as="sp" hint-placeholder-count="2">
+          <div data-id="{{ sp.id }}" data-mode="view" onClick="{{ openProject }}" style="display:flex;align-items:center;gap:11px;padding:10px 11px;border:1px solid #eef1f4;border-radius:9px;margin-bottom:8px;cursor:pointer;transition:.12s" style-hover="border-color:#c3d2e2;background:#fafcfe">
+            <span style="width:30px;height:30px;border-radius:7px;background:#eef2f7;color:#3a6291;display:flex;align-items:center;justify-content:center;flex:none"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 7v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-7l-2-2H5a2 2 0 0 0-2 2z"></path></svg></span>
+            <div style="flex:1;min-width:0">
+              <div style="font-weight:500;font-size:13px;color:#1c3a5e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ sp.name }}</div>
+              <div style="font-size:11.5px;color:#8a96a3">{{ sp.owner }}</div>
+            </div>
+            <span style="display:inline-flex;align-items:center;gap:5px;padding:3px 8px;border-radius:999px;font:600 11px 'IBM Plex Sans';background:{{ sp.chipBg }};color:{{ sp.chipFg }};flex:none"><span style="width:6px;height:6px;border-radius:50%;background:{{ sp.chipDot }}"></span>{{ sp.status }}</span>
+          </div>
+        </sc-for>
+        <sc-if value="{{ detail.hasSub }}" hint-placeholder-val="{{ true }}"></sc-if>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- ================= ADMIN ================= -->
+  <sc-if value="{{ isAdmin }}">
+  <div style="max-width:1320px;margin:0 auto;padding:26px 32px 64px;display:flex;gap:24px;align-items:flex-start">
+    <div style="width:212px;flex:none;position:sticky;top:80px">
+      <div style="background:#fff;border:1px solid #e4e9ee;border-radius:11px;padding:7px;box-shadow:0 1px 2px rgba(20,40,60,.04);display:flex;flex-direction:column;gap:2px">
+        <button data-tab="users" onClick="{{ setAdminTab }}" style="{{ admin.usersNavStyle }}"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>Users</button>
+        <button data-tab="mappings" onClick="{{ setAdminTab }}" style="{{ admin.mapNavStyle }}"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="12" r="3"/><path d="M9 6h3a3 3 0 0 1 3 3M9 18h3a3 3 0 0 0 3-3"/></svg>Mappings</button>
+      </div>
+      <div style="display:flex;align-items:flex-start;gap:8px;margin-top:12px;padding:11px 12px;background:#eef4fb;border:1px solid #dbe7f4;border-radius:10px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3a6291" stroke-width="2" style="flex:none;margin-top:1px"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg><span style="font-size:11.5px;color:#3a6291;line-height:1.5">Manage who can sign in and whose projects each person can see.</span></div>
+    </div>
+
+    <div style="flex:1;min-width:0">
+      <sc-if value="{{ admin.isUsers }}">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap"><div style="display:flex;align-items:baseline;gap:12px"><h1 style="margin:0;font-size:23px;font-weight:700;color:#1c3a5e">Users</h1><span style="font:500 13px 'IBM Plex Mono';color:#8a96a3">{{ userCount }} total</span></div><button onClick="{{ openAddUser }}" style="display:inline-flex;align-items:center;gap:7px;background:{{ accent }};color:#fff;border:none;border-radius:8px;padding:9px 15px;font:600 13px 'IBM Plex Sans';cursor:pointer"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"/></svg>Add user</button></div>
+
+        <div style="margin-top:18px;background:#fff;border:1px solid #e4e9ee;border-radius:11px;padding:14px 16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;box-shadow:0 1px 2px rgba(20,40,60,.04)">
+          <div style="display:flex;align-items:center;gap:8px;background:#f4f6f8;border:1px solid #e4e9ee;border-radius:8px;padding:0 11px;height:38px;min-width:240px;flex:1 1 240px;max-width:360px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg><input value="{{ userSearchVal }}" onInput="{{ setUserSearch }}" placeholder="Search by name or email…" style="border:none;background:transparent;font-size:13.5px;width:100%;color:#1f2d3d"/></div>
+          <div style="display:flex;align-items:center;gap:8px"><span style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:#8a96a3">Role</span><select value="{{ userRoleVal }}" onChange="{{ setUserRole }}" style="height:38px;border:1px solid #e4e9ee;border-radius:8px;background:#fff;padding:0 10px;font-size:13.5px;color:#33414f;cursor:pointer"><option value="all">All roles</option><sc-for list="{{ roleOptions }}" as="r" hint-placeholder-count="4"><option value="{{ r }}">{{ r }}</option></sc-for></select></div>
+          <div style="display:flex;align-items:center;gap:8px"><span style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:#8a96a3">Status</span><sc-for list="{{ userStatusOptions }}" as="opt" hint-placeholder-count="2"><button data-status="{{ opt.label }}" onClick="{{ toggleUserStatus }}" style="{{ opt.btnStyle }}"><span style="width:7px;height:7px;border-radius:50%;background:{{ opt.dot }}"></span>{{ opt.label }}</button></sc-for></div>
+          <sc-if value="{{ userFiltered }}"><span onClick="{{ clearUserFilters }}" style="font-size:12.5px;color:#2b6aa8;cursor:pointer;font-weight:600;margin-left:auto">Clear</span></sc-if>
+        </div>
+
+        <div style="margin-top:16px;background:#fff;border:1px solid #e4e9ee;border-radius:11px;overflow:hidden;box-shadow:0 1px 2px rgba(20,40,60,.04)">
+          <div style="display:grid;grid-template-columns:{{ ucols }};align-items:center;background:#f7f9fb;border-bottom:1px solid #e4e9ee;padding:11px 18px;font:600 11px/1 'IBM Plex Sans';letter-spacing:.06em;text-transform:uppercase;color:#7c8896"><span>Name</span><span>Email</span><span>Role</span><span>Status</span><span>Mapped</span><span></span></div>
+          <sc-for list="{{ userRows }}" as="u" hint-placeholder-count="4">
+            <div style="display:grid;grid-template-columns:{{ ucols }};align-items:center;padding:{{ rowPad }};border-bottom:1px solid #eef1f4;font-size:13.5px" style-hover="background:#f6f9fc">
+              <span style="display:flex;align-items:center;gap:9px;min-width:0"><span style="width:28px;height:28px;border-radius:50%;background:#eef2f7;color:#3a6291;display:flex;align-items:center;justify-content:center;font:600 11px 'IBM Plex Sans';flex:none">{{ u.initials }}</span><span style="font-weight:600;color:#1c3a5e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ u.name }}</span></span>
+              <span style="color:#5e6b77;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ u.email }}</span>
+              <span><span style="display:inline-flex;align-items:center;padding:3px 10px;border-radius:999px;font:600 12px 'IBM Plex Sans';background:{{ u.roleBg }};color:{{ u.roleFg }}">{{ u.role }}</span></span>
+              <span><span style="display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;font:600 12px 'IBM Plex Sans';background:{{ u.stBg }};color:{{ u.stFg }}"><span style="width:6px;height:6px;border-radius:50%;background:{{ u.stDot }}"></span>{{ u.status }}</span></span>
+              <span data-id="{{ u.id }}" onClick="{{ gotoMapping }}" title="View mappings" style="display:inline-flex;align-items:center;gap:6px;color:#46535f;cursor:pointer;width:fit-content" style-hover="color:#2b6aa8"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/></svg><span style="font:500 13px 'IBM Plex Mono'">{{ u.mappedLabel }}</span></span>
+              <span style="display:flex;align-items:center;gap:7px;justify-content:flex-end"><button data-id="{{ u.id }}" onClick="{{ openEditUser }}" title="Edit" style="width:30px;height:30px;border:1px solid #e0e6ec;border-radius:7px;background:#fff;color:#5b6b7b;display:flex;align-items:center;justify-content:center;cursor:pointer" style-hover="border-color:#2b6aa8;color:#2b6aa8"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg></button><sc-if value="{{ u.isActive }}"><button data-id="{{ u.id }}" onClick="{{ askDeactivate }}" title="Deactivate" style="width:30px;height:30px;border:1px solid #e0e6ec;border-radius:7px;background:#fff;color:#5b6b7b;display:flex;align-items:center;justify-content:center;cursor:pointer" style-hover="border-color:#e2483a;color:#b42318"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18.36 6.64a9 9 0 1 1-12.73 0M12 2v10"/></svg></button></sc-if><sc-if value="{{ u.isInactive }}"><button data-id="{{ u.id }}" onClick="{{ reactivate }}" title="Reactivate" style="display:inline-flex;align-items:center;height:30px;border:1px solid #c3d2e2;border-radius:7px;background:#fff;color:#2b6aa8;padding:0 11px;font:600 12px 'IBM Plex Sans';cursor:pointer" style-hover="background:#f2f7fc">Activate</button></sc-if></span>
+            </div>
+          </sc-for>
+          <sc-if value="{{ userResultEmpty }}"><div style="padding:54px 20px;text-align:center;color:#8a96a3"><div style="font-size:15px;font-weight:600;color:#5b6b7b">No users match your filters</div><div style="font-size:13px;margin-top:5px">Try a different search, role, or status.</div><button onClick="{{ clearUserFilters }}" style="margin-top:14px;border:1px solid #d8dee5;background:#fff;color:#33414f;border-radius:7px;padding:8px 14px;font:600 13px 'IBM Plex Sans';cursor:pointer">Clear filters</button></div></sc-if>
+          <sc-if value="{{ usersEmptyAll }}"><div style="padding:60px 20px;text-align:center;color:#8a96a3"><div style="width:48px;height:48px;border-radius:12px;background:#eef2f7;color:#3a6291;display:flex;align-items:center;justify-content:center;margin:0 auto 12px"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/></svg></div><div style="font-size:15px;font-weight:600;color:#5b6b7b">No users yet</div><div style="font-size:13px;margin-top:5px">Invite your first teammate to get started.</div><button onClick="{{ openAddUser }}" style="margin-top:14px;background:{{ accent }};color:#fff;border:none;border-radius:8px;padding:9px 16px;font:600 13px 'IBM Plex Sans';cursor:pointer">Add user</button></div></sc-if>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ admin.isMappings }}">
+        <div style="display:flex;align-items:baseline;gap:12px"><h1 style="margin:0;font-size:23px;font-weight:700;color:#1c3a5e">Mappings</h1><span style="font:500 13px 'IBM Plex Mono';color:#8a96a3">project-visibility grants</span></div>
+        <p style="margin:7px 0 0;font-size:13.5px;color:#5e6b77;line-height:1.55;max-width:700px">Map a user to one or more employees so they can see <strong style="color:#3a4a59;font-weight:600">all projects owned by those employees</strong>, in addition to their own. Grants are independent — an employee can be mapped to several users.</p>
+
+        <div style="display:flex;gap:20px;align-items:flex-start;margin-top:18px;flex-wrap:wrap">
+          <div style="flex:1 1 280px;max-width:340px;background:#fff;border:1px solid #e4e9ee;border-radius:11px;overflow:hidden;box-shadow:0 1px 2px rgba(20,40,60,.04)">
+            <div style="padding:12px 14px;border-bottom:1px solid #eef1f4"><div style="display:flex;align-items:center;gap:8px;background:#f4f6f8;border:1px solid #e4e9ee;border-radius:8px;padding:0 10px;height:36px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg><input value="{{ map.search }}" onInput="{{ setMapSearch }}" placeholder="Search users…" style="border:none;background:transparent;font-size:13px;width:100%;color:#1f2d3d"/></div></div>
+            <div style="max-height:540px;overflow:auto"><sc-for list="{{ map.users }}" as="u" hint-placeholder-count="5"><div data-id="{{ u.id }}" onClick="{{ selectMapUser }}" style="{{ u.itemStyle }}"><span style="width:30px;height:30px;border-radius:50%;background:#eef2f7;color:#3a6291;display:flex;align-items:center;justify-content:center;font:600 11px 'IBM Plex Sans';flex:none">{{ u.initials }}</span><div style="flex:1;min-width:0"><div style="font-weight:600;font-size:13px;color:#1c3a5e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ u.name }}</div><div style="font-size:11.5px;color:#8a96a3">{{ u.role }}</div></div><span style="{{ u.badgeStyle }}">{{ u.count }}</span></div></sc-for></div>
+          </div>
+
+          <div style="flex:2 1 440px;min-width:0">
+            <sc-if value="{{ map.hasSelection }}">
+              <div style="background:#fff;border:1px solid #e4e9ee;border-radius:11px;overflow:hidden;box-shadow:0 1px 2px rgba(20,40,60,.04)">
+                <div style="display:flex;align-items:center;gap:12px;padding:16px 18px;border-bottom:1px solid #eef1f4"><span style="width:38px;height:38px;border-radius:50%;background:#1c3a5e;color:#fff;display:flex;align-items:center;justify-content:center;font:600 13px 'IBM Plex Sans';flex:none">{{ map.panel.initials }}</span><div style="flex:1;min-width:0"><div style="display:flex;align-items:center;gap:9px"><span style="font-weight:700;font-size:16px;color:#1c3a5e">{{ map.panel.name }}</span><span style="display:inline-flex;align-items:center;padding:2px 9px;border-radius:999px;font:600 11.5px 'IBM Plex Sans';background:{{ map.panel.roleBg }};color:{{ map.panel.roleFg }}">{{ map.panel.role }}</span></div><div style="font-size:12px;color:#8a96a3;margin-top:1px">Project visibility</div></div></div>
+                <div style="margin:16px 18px 0;display:flex;align-items:flex-start;gap:9px;background:#eef4fb;border:1px solid #dbe7f4;border-radius:9px;padding:11px 13px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#3a6291" stroke-width="2" style="flex:none;margin-top:1px"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg><span style="font-size:13px;color:#33536f;line-height:1.5">{{ map.panel.summary }}</span></div>
+                <div style="padding:16px 18px">
+                  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px"><span style="font:600 11px 'IBM Plex Sans';text-transform:uppercase;letter-spacing:.06em;color:#8a96a3">Mapped employees</span><button onClick="{{ openAddEmp }}" style="display:inline-flex;align-items:center;gap:5px;background:#fff;color:#2b6aa8;border:1px solid #c3d2e2;border-radius:7px;padding:6px 11px;font:600 12px 'IBM Plex Sans';cursor:pointer" style-hover="background:#f2f7fc"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"/></svg>Add employee</button></div>
+                  <sc-if value="{{ map.panel.hasMapped }}"><div style="display:flex;flex-wrap:wrap;gap:9px"><sc-for list="{{ map.panel.mapped }}" as="m" hint-placeholder-count="3"><span style="display:inline-flex;align-items:center;gap:8px;background:#f4f7fa;border:1px solid #dde5ee;border-radius:999px;padding:5px 6px 5px 7px"><span style="width:22px;height:22px;border-radius:50%;background:#eef2f7;color:#3a6291;display:flex;align-items:center;justify-content:center;font:600 10px 'IBM Plex Sans'">{{ m.initials }}</span><span style="font-weight:600;font-size:13px;color:#33414f">{{ m.name }}</span><span style="font:500 11px 'IBM Plex Mono';color:#8a96a3">{{ m.projLabel }}</span><span data-emp="{{ m.empId }}" onClick="{{ removeEmp }}" title="Remove" style="width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#90a0b0;cursor:pointer" style-hover="background:#e6ebf0;color:#b42318"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M18 6L6 18M6 6l12 12"/></svg></span></span></sc-for></div></sc-if>
+                  <sc-if value="{{ map.panel.empty }}"><div style="border:1px dashed #c8d2dc;border-radius:11px;padding:28px 20px;text-align:center;background:#fafbfc"><div style="font-size:14px;font-weight:600;color:#5b6b7b">No employees mapped yet</div><div style="font-size:12.5px;color:#8a96a3;margin-top:4px;line-height:1.5">{{ map.panel.name }} can only see their own projects. Add an employee to grant visibility.</div><button onClick="{{ openAddEmp }}" style="margin-top:14px;display:inline-flex;align-items:center;gap:6px;background:{{ accent }};color:#fff;border:none;border-radius:8px;padding:9px 15px;font:600 12.5px 'IBM Plex Sans';cursor:pointer"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"/></svg>Add employee</button></div></sc-if>
+                  <sc-if value="{{ map.panel.addOpen }}">
+                    <div style="margin-top:13px;border:1px solid #d8dee5;border-radius:11px;background:#fafbfc;overflow:hidden">
+                      <div style="padding:10px 12px;border-bottom:1px solid #eef1f4;display:flex;align-items:center;gap:8px;background:#fff"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg><input value="{{ map.panel.empSearch }}" onInput="{{ setEmpSearch }}" placeholder="Search employees to add…" style="border:none;background:transparent;font-size:13px;width:100%"/><button onClick="{{ closeAddEmp }}" title="Close" style="width:26px;height:26px;border:none;background:transparent;color:#90a0b0;display:flex;align-items:center;justify-content:center;cursor:pointer;border-radius:6px" style-hover="background:#eef1f4"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 6L6 18M6 6l12 12"/></svg></button></div>
+                      <sc-if value="{{ map.panel.hasErr }}"><div style="display:flex;align-items:center;gap:8px;padding:9px 13px;background:#fcebe9;border-bottom:1px solid #f1c7c1"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#b42318" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v5M12 16h.01"/></svg><span style="font-size:12.5px;color:#b42318;font-weight:500">{{ map.panel.mapErr }}</span></div></sc-if>
+                      <div style="max-height:240px;overflow:auto"><sc-for list="{{ map.panel.cands }}" as="c" hint-placeholder-count="4"><div data-id="{{ c.id }}" onClick="{{ addEmp }}" style="{{ c.rowStyle }}"><span style="width:24px;height:24px;border-radius:50%;background:#eef2f7;color:#3a6291;display:flex;align-items:center;justify-content:center;font:600 10px 'IBM Plex Sans';flex:none">{{ c.initials }}</span><div style="flex:1;min-width:0"><div style="font-weight:600;font-size:13px;color:#33414f">{{ c.name }} <span style="font-weight:500;font-size:11px;color:#b08900">{{ c.selfNote }}</span></div><div style="font-size:11.5px;color:#8a96a3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ c.email }}</div></div><span style="font:500 11px 'IBM Plex Mono';color:#8a96a3;flex:none">{{ c.projLabel }}</span></div></sc-for><sc-if value="{{ map.panel.noCands }}"><div style="padding:22px;text-align:center;font-size:12.5px;color:#8a96a3">No matching employees.</div></sc-if></div>
+                    </div>
+                  </sc-if>
+                </div>
+              </div>
+            </sc-if>
+            <sc-if value="{{ map.noSelection }}"><div style="background:#fff;border:1px dashed #d3dbe3;border-radius:11px;padding:60px 24px;text-align:center;color:#8a96a3"><div style="width:46px;height:46px;border-radius:12px;background:#eef2f7;color:#3a6291;display:flex;align-items:center;justify-content:center;margin:0 auto 12px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M19 12H5M12 19l-7-7 7-7"/></svg></div><div style="font-size:15px;font-weight:600;color:#5b6b7b">Select a user</div><div style="font-size:13px;margin-top:5px">Pick someone on the left to manage whose projects they can see.</div></div></sc-if>
+          </div>
+        </div>
+
+        <div style="margin-top:24px;background:#fff;border:1px solid #e4e9ee;border-radius:11px;overflow:hidden;box-shadow:0 1px 2px rgba(20,40,60,.04)">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:13px 18px;border-bottom:1px solid #eef1f4;background:#fafbfc"><span style="font-weight:700;font-size:14px;color:#1c3a5e">All mappings</span><span style="font-size:12px;color:#8a96a3">{{ overviewCount }} users with grants</span></div>
+          <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2.4fr) 120px;align-items:center;background:#f7f9fb;border-bottom:1px solid #e4e9ee;padding:10px 18px;font:600 11px 'IBM Plex Sans';letter-spacing:.06em;text-transform:uppercase;color:#7c8896"><span>User</span><span>Can view projects of</span><span># Employees</span></div>
+          <sc-for list="{{ overviewRows }}" as="o" hint-placeholder-count="2"><div data-id="{{ o.id }}" onClick="{{ selectMapUser }}" style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2.4fr) 120px;align-items:center;padding:12px 18px;border-bottom:1px solid #eef1f4;cursor:pointer" style-hover="background:#f6f9fc"><span style="display:flex;align-items:center;gap:9px;min-width:0"><span style="width:26px;height:26px;border-radius:50%;background:#eef2f7;color:#3a6291;display:flex;align-items:center;justify-content:center;font:600 10px 'IBM Plex Sans';flex:none">{{ o.initials }}</span><span style="font-weight:600;font-size:13.5px;color:#1c3a5e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ o.name }}</span></span><span style="display:flex;flex-wrap:wrap;gap:6px"><sc-for list="{{ o.shown }}" as="n" hint-placeholder-count="2"><span style="display:inline-flex;align-items:center;background:#eef2f7;border-radius:6px;padding:2px 8px;font-size:12px;color:#46535f;font-weight:500">{{ n.name }}</span></sc-for><sc-if value="{{ o.hasMore }}"><span style="display:inline-flex;align-items:center;padding:2px 6px;font-size:12px;color:#8a96a3;font-weight:600">+{{ o.moreCount }} more</span></sc-if></span><span style="font:500 13px 'IBM Plex Mono';color:#46535f">{{ o.count }}</span></div></sc-for>
+          <sc-if value="{{ overviewEmpty }}"><div style="padding:40px 20px;text-align:center;color:#8a96a3"><div style="font-size:14px;font-weight:600;color:#5b6b7b">No mappings yet</div><div style="font-size:12.5px;margin-top:4px">Grants you create will appear here for auditing.</div></div></sc-if>
+        </div>
+      </sc-if>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- ================= NEW PROJECT MODAL ================= -->
+  <sc-if value="{{ newProjectOpen }}">
+    <div onClick="{{ closeNewProject }}" style="position:fixed;inset:0;background:rgba(22,38,55,.42);z-index:100;display:flex;align-items:center;justify-content:center;animation:ovl .15s ease;padding:20px">
+      <div onClick="{{ stop }}" style="background:#fff;border-radius:14px;width:440px;max-width:100%;box-shadow:0 24px 60px rgba(20,40,60,.28);animation:pop .2s ease;overflow:hidden">
+        <div style="padding:20px 22px 0">
+          <h3 style="margin:0;font-size:18px;font-weight:700;color:#1c3a5e">New project</h3>
+          <p style="margin:6px 0 0;font-size:13px;color:#8a96a3;line-height:1.5">Start with just a name and a start date. Milestones, tasks and files come next.</p>
+        </div>
+        <div style="padding:18px 22px;display:flex;flex-direction:column;gap:14px">
+          <label style="display:flex;flex-direction:column;gap:6px"><span style="font:600 11px 'IBM Plex Sans';text-transform:uppercase;letter-spacing:.05em;color:#8a96a3">Project name</span><input data-field="np_name" onInput="{{ draftInput }}" placeholder="e.g. Salicylic Acid Development" style="border:1px solid #d8dee5;border-radius:8px;padding:10px 12px;font-size:14px" style-focus="border-color:#2b6aa8"></label>
+          <label style="display:flex;flex-direction:column;gap:6px"><span style="font:600 11px 'IBM Plex Sans';text-transform:uppercase;letter-spacing:.05em;color:#8a96a3">Objective</span><textarea data-field="np_objective" onInput="{{ draftInput }}" rows="3" placeholder="What this project sets out to achieve and the target it's measured against…" style="border:1px solid #d8dee5;border-radius:8px;padding:9px 12px;font:400 13.5px/1.55 'IBM Plex Sans';color:#41505e;resize:vertical" style-focus="border-color:#2b6aa8"></textarea></label>
+          <div style="display:flex;gap:14px;flex-wrap:wrap">
+            <label style="display:flex;flex-direction:column;gap:6px;flex:1 1 150px"><span style="font:600 11px 'IBM Plex Sans';text-transform:uppercase;letter-spacing:.05em;color:#8a96a3">Responsible</span><select data-field="np_owner" defaultValue="{{ defaultOwner }}" onChange="{{ draftInput }}" style="border:1px solid #d8dee5;border-radius:8px;padding:9px 12px;font-size:13.5px;color:#2b3947;cursor:pointer" style-focus="border-color:#2b6aa8"><sc-for list="{{ team }}" as="tm" hint-placeholder-count="5"><option value="{{ tm }}">{{ tm }}</option></sc-for></select></label>
+            <label style="display:flex;flex-direction:column;gap:6px;flex:1 1 150px"><span style="font:600 11px 'IBM Plex Sans';text-transform:uppercase;letter-spacing:.05em;color:#8a96a3">Start date</span><input type="date" data-field="np_start" defaultValue="{{ todayVal }}" onInput="{{ draftInput }}" style="border:1px solid #d8dee5;border-radius:8px;padding:9px 12px;font:500 13px 'IBM Plex Mono'"></label>
+          </div>
+          <div style="display:flex;align-items:flex-start;gap:8px;background:#f4f7fa;border-radius:8px;padding:10px 12px">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#7d93ab" stroke-width="2" style="flex:none;margin-top:1px"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4M12 8h.01"></path></svg>
+            <span style="font-size:12px;color:#5e7186;line-height:1.5">Target date is set automatically from the project's milestones and tasks — you don't enter it here.</span>
+          </div>
+        </div>
+        <div style="padding:0 22px 20px;display:flex;justify-content:flex-end;gap:9px">
+          <button onClick="{{ closeNewProject }}" style="background:#fff;color:#5b6b7b;border:1px solid #d8dee5;border-radius:8px;padding:9px 16px;font:600 13px 'IBM Plex Sans';cursor:pointer">Cancel</button>
+          <button onClick="{{ submitNewProject }}" style="background:{{ accent }};color:#fff;border:none;border-radius:8px;padding:9px 18px;font:600 13px 'IBM Plex Sans';cursor:pointer">Create &amp; open</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- ================= FILE VIEWER MODAL ================= -->
+  <sc-if value="{{ fileOpen }}">
+    <div onClick="{{ closeFile }}" style="position:fixed;inset:0;background:rgba(22,38,55,.5);z-index:100;display:flex;align-items:center;justify-content:center;animation:ovl .15s ease;padding:24px">
+      <div onClick="{{ stop }}" style="background:#fff;border-radius:12px;width:860px;max-width:100%;height:82vh;display:flex;flex-direction:column;box-shadow:0 24px 60px rgba(20,40,60,.32);animation:pop .2s ease;overflow:hidden">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:13px 18px;border-bottom:1px solid #e4e9ee;background:#fafbfc">
+          <div style="display:flex;align-items:center;gap:10px;min-width:0">
+            <span style="width:30px;height:30px;border-radius:7px;background:#fbe9e7;color:#c0392b;display:flex;align-items:center;justify-content:center;flex:none"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6"></path></svg></span>
+            <span style="font-weight:600;font-size:14px;color:#2b3947">{{ viewer.name }}</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <button onClick="{{ download }}" style="display:inline-flex;align-items:center;gap:6px;background:#fff;color:#33414f;border:1px solid #d8dee5;border-radius:7px;padding:7px 12px;font:600 12.5px 'IBM Plex Sans';cursor:pointer"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"></path></svg>Download</button>
+            <button onClick="{{ closeFile }}" style="width:32px;height:32px;border:1px solid #d8dee5;border-radius:7px;background:#fff;color:#5b6b7b;display:flex;align-items:center;justify-content:center;cursor:pointer"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"></path></svg></button>
+          </div>
+        </div>
+        <div style="flex:1;overflow:auto;background:#5a6573;padding:26px;display:flex;justify-content:center">
+          <sc-if value="{{ viewer.renderable }}">
+            <div style="background:#fff;width:620px;max-width:100%;min-height:820px;box-shadow:0 6px 24px rgba(0,0,0,.25);padding:54px 56px;font-family:'IBM Plex Sans'">
+              <div style="display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid #1c3a5e;padding-bottom:14px">
+                <div><div style="font-weight:700;font-size:17px;color:#1c3a5e">Manipal Specialty Chemicals</div><div style="font-size:11px;color:#8a96a3;margin-top:2px">R&amp;D — Project documentation</div></div>
+                <div style="font:500 11px 'IBM Plex Mono';color:#8a96a3;text-align:right">Vanillin Development<br>Doc ref · VD-VEN-014</div>
+              </div>
+              <h2 style="margin:26px 0 4px;font-size:20px;color:#1c2630">Approved Vendor List</h2>
+              <p style="margin:0;font-size:12.5px;color:#8a96a3">Raw materials &amp; services — bench to pilot scale</p>
+              <div style="margin-top:22px;border:1px solid #e4e9ee;border-radius:6px;overflow:hidden">
+                <div style="display:grid;grid-template-columns:1.4fr 1fr 1fr;background:#f2f5f8;padding:9px 12px;font:600 11px 'IBM Plex Sans';color:#5b6b7b;text-transform:uppercase;letter-spacing:.04em"><span>Material</span><span>Vendor</span><span>Status</span></div>
+                <div style="display:grid;grid-template-columns:1.4fr 1fr 1fr;padding:10px 12px;font-size:12.5px;border-top:1px solid #eef1f4;color:#3b4956"><span>Guaiacol (99%)</span><span>Vendor A</span><span style="color:#1b7a43">Approved</span></div>
+                <div style="display:grid;grid-template-columns:1.4fr 1fr 1fr;padding:10px 12px;font-size:12.5px;border-top:1px solid #eef1f4;color:#3b4956"><span>Pd/C catalyst</span><span>Vendor B</span><span style="color:#1b7a43">Approved</span></div>
+                <div style="display:grid;grid-template-columns:1.4fr 1fr 1fr;padding:10px 12px;font-size:12.5px;border-top:1px solid #eef1f4;color:#3b4956"><span>Ethyl acetate</span><span>Vendor C</span><span style="color:#a8620a">Under review</span></div>
+                <div style="display:grid;grid-template-columns:1.4fr 1fr 1fr;padding:10px 12px;font-size:12.5px;border-top:1px solid #eef1f4;color:#3b4956"><span>Lab analysis</span><span>Ext. Lab D</span><span style="color:#1b7a43">Approved</span></div>
+              </div>
+              <p style="margin-top:24px;font-size:12.5px;line-height:1.7;color:#46535f">All listed vendors have completed the qualification checklist and submitted current Certificates of Analysis. Purchase orders for the bench-development phase are placed against Vendor A and Vendor B. Vendor C remains under review pending an updated quality audit.</p>
+              <div style="margin-top:40px;display:flex;justify-content:space-between;font-size:11.5px;color:#8a96a3"><span>Prepared by: Harsha</span><span>Page 1 of 1</span></div>
+            </div>
+          </sc-if>
+          <sc-if value="{{ viewer.renderable }}" hint-placeholder-val="{{ true }}"></sc-if>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- ================= SPREADSHEET MODAL ================= -->
+  <sc-if value="{{ sheetOpen }}">
+    <div onClick="{{ closeSheet }}" style="position:fixed;inset:0;background:rgba(22,38,55,.5);z-index:100;display:flex;align-items:center;justify-content:center;animation:ovl .15s ease;padding:24px">
+      <div onClick="{{ stop }}" style="background:#fff;border-radius:12px;width:960px;max-width:100%;height:84vh;display:flex;flex-direction:column;box-shadow:0 24px 60px rgba(20,40,60,.32);animation:pop .2s ease;overflow:hidden">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid #e4e9ee">
+          <div style="display:flex;align-items:center;gap:10px;min-width:0">
+            <span style="width:30px;height:30px;border-radius:7px;background:#e9f0f8;color:#2b6aa8;display:flex;align-items:center;justify-content:center;flex:none"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="2"></rect><path d="M3 9h18M3 15h18M9 3v18M15 3v18"></path></svg></span>
+            <input defaultValue="{{ sheet.name }}" style="font-weight:600;font-size:14.5px;color:#2b3947;border:1px solid transparent;border-radius:6px;padding:4px 8px;background:#f7f9fb;width:220px" style-focus="border-color:#2b6aa8;background:#fff">
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <button onClick="{{ download }}" style="background:{{ accent }};color:#fff;border:none;border-radius:7px;padding:7px 14px;font:600 12.5px 'IBM Plex Sans';cursor:pointer">Save</button>
+            <button onClick="{{ closeSheet }}" style="width:32px;height:32px;border:1px solid #d8dee5;border-radius:7px;background:#fff;color:#5b6b7b;display:flex;align-items:center;justify-content:center;cursor:pointer"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"></path></svg></button>
+          </div>
+        </div>
+        <!-- toolbar -->
+        <div style="display:flex;align-items:center;gap:6px;padding:9px 16px;border-bottom:1px solid #eef1f4;background:#fafbfc">
+          <sc-for list="{{ sheetTools }}" as="tool" hint-placeholder-count="5">
+            <button data-tool="{{ tool }}" onClick="{{ sheetTool }}" style="display:inline-flex;align-items:center;gap:5px;background:#fff;border:1px solid #d8dee5;border-radius:6px;padding:6px 11px;font:600 12px 'IBM Plex Sans';color:#46535f;cursor:pointer" style-hover="border-color:#2b6aa8;color:#2b6aa8">{{ tool }}</button>
+          </sc-for>
+          <span style="font-size:11.5px;color:#aab4be;margin-left:6px">Version 1 — table, list, merge, sum &amp; pivot</span>
+        </div>
+        <!-- grid -->
+        <div style="flex:1;overflow:auto;padding:0">
+          <div style="display:grid;grid-template-columns:44px 1.5fr 1.2fr 90px 120px 130px;font-size:13px;min-width:640px">
+            <div style="background:#f2f5f8;border-bottom:1px solid #dfe5ea;border-right:1px solid #eef1f4;padding:8px 6px;text-align:center;font:600 11px 'IBM Plex Mono';color:#8a96a3"></div>
+            <sc-for list="{{ sheet.cols }}" as="c" hint-placeholder-count="5"><div style="background:#f2f5f8;border-bottom:1px solid #dfe5ea;border-right:1px solid #eef1f4;padding:8px 11px;font:600 11px 'IBM Plex Sans';color:#5b6b7b;text-transform:uppercase;letter-spacing:.04em">{{ c }}</div></sc-for>
+            <sc-for list="{{ sheet.rows }}" as="r" hint-placeholder-count="5">
+              <div style="border-bottom:1px solid #f2f4f7;border-right:1px solid #eef1f4;padding:0;text-align:center;font:500 11px 'IBM Plex Mono';color:#9aa6b2;display:flex;align-items:center;justify-content:center;background:#fafbfc">{{ r.idx }}</div>
+              <div style="border-bottom:1px solid #f2f4f7;border-right:1px solid #f2f4f7"><input defaultValue="{{ r.item }}" style="border:none;width:100%;padding:8px 11px;font-size:13px;background:transparent;color:#2b3947" style-focus="background:#eef6fd"></div>
+              <div style="border-bottom:1px solid #f2f4f7;border-right:1px solid #f2f4f7"><input defaultValue="{{ r.vendor }}" style="border:none;width:100%;padding:8px 11px;font-size:13px;background:transparent;color:#2b3947" style-focus="background:#eef6fd"></div>
+              <div style="border-bottom:1px solid #f2f4f7;border-right:1px solid #f2f4f7"><input id="qty-{{ r.r }}" defaultValue="{{ r.qty }}" onInput="{{ recalcSheet }}" style="border:none;width:100%;padding:8px 9px;font:500 12px 'IBM Plex Mono';background:transparent;color:#2b3947;text-align:right" style-focus="background:#eef6fd"></div>
+              <div style="border-bottom:1px solid #f2f4f7;border-right:1px solid #f2f4f7"><input id="unit-{{ r.r }}" defaultValue="{{ r.unit }}" onInput="{{ recalcSheet }}" style="border:none;width:100%;padding:8px 9px;font:500 12px 'IBM Plex Mono';background:transparent;color:#2b3947;text-align:right" style-focus="background:#eef6fd"></div>
+              <div id="amt-{{ r.r }}" style="border-bottom:1px solid #f2f4f7;padding:8px 11px;font:500 12px 'IBM Plex Mono';color:#1b7a43;text-align:right;background:#fafdfb"></div>
+            </sc-for>
+          </div>
+        </div>
+        <!-- status bar -->
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-top:1px solid #e4e9ee;background:#fafbfc">
+          <span style="font-size:12px;color:#8a96a3">Amount = Qty × Unit cost · auto-calculated</span>
+          <span style="display:flex;align-items:center;gap:9px;font:600 13px 'IBM Plex Sans';color:#2b3947">Total <span id="sheet-total" style="font:600 14px 'IBM Plex Mono';color:#1b7a43">₹ 0</span></span>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- ================= ADD / EDIT USER ================= -->
+  <sc-if value="{{ userModalOpen }}">
+    <div onClick="{{ closeUserModal }}" style="position:fixed;inset:0;background:rgba(22,38,55,.42);z-index:100;display:flex;align-items:center;justify-content:center;animation:ovl .15s ease;padding:20px">
+      <div onClick="{{ stop }}" style="background:#fff;border-radius:14px;width:460px;max-width:100%;box-shadow:0 24px 60px rgba(20,40,60,.28);animation:pop .2s ease;overflow:hidden">
+        <div style="padding:20px 22px 0"><h3 style="margin:0;font-size:18px;font-weight:700;color:#1c3a5e">{{ um.title }}</h3><sc-if value="{{ um.isAdd }}"><p style="margin:6px 0 0;font-size:13px;color:#8a96a3;line-height:1.5">Create an account and email an invitation to set a password.</p></sc-if><sc-if value="{{ um.isEdit }}"><p style="margin:6px 0 0;font-size:13px;color:#8a96a3;line-height:1.5">Update this user's details, role, or access.</p></sc-if></div>
+        <div style="padding:18px 22px;display:flex;flex-direction:column;gap:14px">
+          <label style="display:flex;flex-direction:column;gap:6px"><span style="font:600 11px 'IBM Plex Sans';text-transform:uppercase;letter-spacing:.05em;color:#8a96a3">Full name <span style="color:#c0392b">*</span></span><input data-field="uf_name" defaultValue="{{ um.name }}" onInput="{{ draftInput }}" placeholder="e.g. Meera Iyer" style="border:1px solid {{ um.nameBorder }};border-radius:8px;padding:10px 12px;font-size:14px" style-focus="border-color:#2b6aa8"/><sc-if value="{{ um.hasErrName }}"><span style="font-size:12px;color:#b42318">{{ um.errName }}</span></sc-if></label>
+          <label style="display:flex;flex-direction:column;gap:6px"><span style="font:600 11px 'IBM Plex Sans';text-transform:uppercase;letter-spacing:.05em;color:#8a96a3">Email <span style="color:#c0392b">*</span></span><input data-field="uf_email" defaultValue="{{ um.email }}" onInput="{{ draftInput }}" placeholder="name@manipalsplchem.com" style="border:1px solid {{ um.emailBorder }};border-radius:8px;padding:10px 12px;font-size:14px" style-focus="border-color:#2b6aa8"/><sc-if value="{{ um.hasErrEmail }}"><span style="font-size:12px;color:#b42318">{{ um.errEmail }}</span></sc-if></label>
+          <div style="display:flex;gap:14px;flex-wrap:wrap"><label style="display:flex;flex-direction:column;gap:6px;flex:1 1 150px"><span style="font:600 11px 'IBM Plex Sans';text-transform:uppercase;letter-spacing:.05em;color:#8a96a3">Role</span><select data-field="uf_role" defaultValue="{{ um.role }}" onChange="{{ draftInput }}" style="border:1px solid #d8dee5;border-radius:8px;padding:9px 12px;font-size:13.5px;color:#2b3947;cursor:pointer"><sc-for list="{{ um.roleList }}" as="r" hint-placeholder-count="4"><option value="{{ r }}">{{ r }}</option></sc-for></select></label><div style="display:flex;flex-direction:column;gap:6px;flex:1 1 150px"><span style="font:600 11px 'IBM Plex Sans';text-transform:uppercase;letter-spacing:.05em;color:#8a96a3">Status</span><div style="display:inline-flex;background:#f1f4f7;border:1px solid #e0e6ec;border-radius:8px;padding:3px;gap:3px;width:fit-content"><button data-status="Active" onClick="{{ setUserFormStatus }}" style="{{ um.activeBtnStyle }}">Active</button><button data-status="Inactive" onClick="{{ setUserFormStatus }}" style="{{ um.inactiveBtnStyle }}">Inactive</button></div></div></div>
+          <sc-if value="{{ um.isAdd }}"><div style="display:flex;align-items:flex-start;gap:8px;background:#f4f7fa;border-radius:8px;padding:10px 12px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#7d93ab" stroke-width="2" style="flex:none;margin-top:1px"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 7l-10 6L2 7"/></svg><span style="font-size:12px;color:#5e7186;line-height:1.5">An invite to set a password will be sent to this email — you won't set a password here.</span></div></sc-if>
+        </div>
+        <div style="padding:0 22px 20px;display:flex;justify-content:flex-end;gap:9px"><button onClick="{{ closeUserModal }}" style="background:#fff;color:#5b6b7b;border:1px solid #d8dee5;border-radius:8px;padding:9px 16px;font:600 13px 'IBM Plex Sans';cursor:pointer">Cancel</button><button onClick="{{ submitUser }}" style="background:{{ accent }};color:#fff;border:none;border-radius:8px;padding:9px 18px;font:600 13px 'IBM Plex Sans';cursor:pointer">{{ um.submitLabel }}</button></div>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- ================= DEACTIVATE CONFIRM ================= -->
+  <sc-if value="{{ deactivateOpen }}">
+    <div onClick="{{ cancelDeactivate }}" style="position:fixed;inset:0;background:rgba(22,38,55,.42);z-index:101;display:flex;align-items:center;justify-content:center;animation:ovl .15s ease;padding:20px">
+      <div onClick="{{ stop }}" style="background:#fff;border-radius:14px;width:404px;max-width:100%;box-shadow:0 24px 60px rgba(20,40,60,.28);animation:pop .2s ease;padding:24px">
+        <div style="display:flex;align-items:center;gap:12px"><span style="width:42px;height:42px;border-radius:11px;background:#fcebe9;color:#b42318;display:flex;align-items:center;justify-content:center;flex:none"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg></span><h3 style="margin:0;font-size:17px;font-weight:700;color:#1c3a5e">Deactivate {{ deactivateName }}?</h3></div>
+        <p style="margin:14px 0 0;font-size:13.5px;color:#5e6b77;line-height:1.55">They'll immediately lose access and won't be able to sign in until an admin reactivates them. Their projects and mappings are kept.</p>
+        <div style="margin-top:20px;display:flex;justify-content:flex-end;gap:9px"><button onClick="{{ cancelDeactivate }}" style="background:#fff;color:#5b6b7b;border:1px solid #d8dee5;border-radius:8px;padding:9px 16px;font:600 13px 'IBM Plex Sans';cursor:pointer">Cancel</button><button onClick="{{ confirmDeactivate }}" style="background:#b42318;color:#fff;border:none;border-radius:8px;padding:9px 16px;font:600 13px 'IBM Plex Sans';cursor:pointer">Deactivate</button></div>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- ================= TOAST ================= -->
+  <sc-if value="{{ hasToast }}">
+    <div style="position:fixed;bottom:26px;left:50%;transform:translateX(-50%);background:#1c3a5e;color:#fff;padding:11px 18px;border-radius:9px;font:500 13px 'IBM Plex Sans';box-shadow:0 8px 24px rgba(20,40,60,.3);z-index:200;animation:slideup .2s ease">{{ toast }}</div>
+  </sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:&quot;100%&quot;,&quot;height&quot;:880},&quot;orgName&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Manipal Specialty Chemicals &quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;accent&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#3a79df&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;density&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;compact&quot;,&quot;comfortable&quot;,&quot;spacious&quot;],&quot;default&quot;:&quot;compact&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+class Component extends DCLogic {
+  NAVY = '#1c3a5e';
+  TEAM = ['Harsha','Amit Sharma','Nagabhushan','Priya Nair','Rohit Verma'];
+  STATUS = {
+    'Draft':       { bg:'#eceff3', fg:'#5b6b7b', dot:'#94a3b8' },
+    'In progress': { bg:'#fdf0dd', fg:'#a8620a', dot:'#ef9a1e' },
+    'On hold':     { bg:'#e9f0f8', fg:'#3a6291', dot:'#6b8fb5' },
+    'Completed':   { bg:'#e4f3ea', fg:'#1b7a43', dot:'#21a25a' },
+    'At risk':     { bg:'#fcebe9', fg:'#b42318', dot:'#e2483a' }
+  };
+  COLS = 'minmax(0,1fr) 96px 96px 140px 44px';
+  draft = {};
+  _n = 2000;
+
+  state = {
+    projects: this.seed(),
+    view: 'login',
+    currentId: null,
+    mode: 'view',
+    expanded: {},
+    detailStatusFilter: [],
+    composerFor: null,
+    objExpanded: false,
+    filterOwner: 'all',
+    filterStatuses: [],
+    search: '',
+    addTaskFor: null,
+    addingMilestone: false,
+    newProjectOpen: false,
+    fileViewer: null,
+    sheetOpen: false,
+    sheet: this.seedSheet(),
+    toast: null,
+    // --- auth ---
+    loginEmail:'harsha@manipalsplchem.com', loginPwd:'', showPwd:false, loginErr:null, loginLoading:false, previewMobile:false,
+    // --- account menu ---
+    accountOpen:false,
+    // --- admin ---
+    users: this.seedUsers(),
+    adminTab:'users',
+    userSearch:'', userRole:'all', userStatuses:[],
+    userModal:null, userErrors:{}, deactivateId:null,
+    mapUserId:'u2', mapSearch:'', addEmpOpen:false, empSearch:'', mapErr:null
+  };
+
+  seed(){
+    return [
+      {
+        id:'p1', name:'Vanillin Development', owner:'Harsha', status:'In progress',
+        start:'2025-07-01', parentId:null,
+        objective:'Develop Vanillin through a cost-effective synthesis route. Complete bench-scale lab development, validate at pilot scale, then transfer to manufacturing for commercialization. Target a landed cost at least 18% below the current import benchmark while meeting food-grade purity (>99.5%).',
+        milestones:[
+          { id:'m1', name:'Lab-scale development', target:'2025-11-06', status:'In progress', tasks:[
+            { id:'t1', name:'Raw material procurement', start:'2025-04-10', target:'2025-04-10', status:'Completed', updates:[
+              { text:'Raw-material vendors finalized and PO placed with two qualified suppliers.', author:'Harsha', date:'2025-05-12' },
+              { text:'Shortlisted three vendors; awaiting quotations and CoA samples.', author:'Harsha', date:'2025-04-28' }
+            ]},
+            { id:'t2', name:'Catalyst screening', start:'2025-04-15', target:'2025-06-20', status:'In progress', updates:[
+              { text:'Pd/C giving 78% isolated yield at 4 bar; Raney-Ni trial scheduled next week.', author:'Priya Nair', date:'2025-06-04' },
+              { text:'Initial screen of three catalyst systems underway.', author:'Priya Nair', date:'2025-05-20' }
+            ]},
+            { id:'t3', name:'Process optimization', start:'2025-05-01', target:'2025-07-15', status:'On hold', updates:[
+              { text:'Paused pending final catalyst selection from screening study.', author:'Harsha', date:'2025-06-08' }
+            ]}
+          ]},
+          { id:'m2', name:'Pilot-scale validation', target:'2026-02-15', status:'In progress', tasks:[
+            { id:'t4', name:'Reactor sizing & PFD', start:'2025-09-01', target:'2025-12-15', status:'In progress', updates:[
+              { text:'Heat-and-material balance complete; PFD out for internal review.', author:'Amit Sharma', date:'2025-09-22' }
+            ]},
+            { id:'t5', name:'Effluent treatment plan', start:'2025-10-01', target:'2026-01-20', status:'Draft', updates:[] }
+          ]}
+        ],
+        directTasks:[
+          { id:'t6', name:'Patent landscape & FTO review', start:'2025-08-01', target:'2026-01-30', status:'In progress', updates:[
+            { text:'Freedom-to-operate analysis 60% complete; no blocking claims found so far.', author:'Rohit Verma', date:'2025-09-15' }
+          ]}
+        ],
+        files:[
+          { id:'f1', name:'Vendor list.pdf', type:'pdf', size:'1.2 MB', by:'Harsha' },
+          { id:'f2', name:'Approval list.pdf', type:'pdf', size:'840 KB', by:'Harsha' },
+          { id:'f3', name:'Spec sheet.xlsx', type:'xlsx', size:'320 KB', by:'Amit Sharma' },
+          { id:'f4', name:'Cost model', type:'sheet', size:'in-app', by:'Harsha' }
+        ],
+        subProjectIds:['p4','p5']
+      },
+      {
+        id:'p2', name:'MEHQ Development', owner:'Amit Sharma', status:'In progress',
+        start:'2025-07-01', parentId:null,
+        objective:'Establish an in-house route for MEHQ (mequinol) as a polymerization inhibitor, replacing imported material and securing supply continuity.',
+        milestones:[
+          { id:'m3', name:'Route selection', target:'2025-12-20', status:'In progress', tasks:[
+            { id:'t7', name:'Literature & route comparison', start:'2025-07-10', target:'2025-09-30', status:'Completed', updates:[
+              { text:'Two routes shortlisted; methylation route preferred on cost and safety.', author:'Amit Sharma', date:'2025-09-10' }
+            ]},
+            { id:'t8', name:'Bench trials', start:'2025-10-01', target:'2025-12-15', status:'In progress', updates:[
+              { text:'First bench batch at 71% yield; purity above target.', author:'Amit Sharma', date:'2025-10-30' }
+            ]}
+          ]}
+        ],
+        directTasks:[],
+        files:[ { id:'f5', name:'Safety review.pdf', type:'pdf', size:'600 KB', by:'Amit Sharma' } ],
+        subProjectIds:[]
+      },
+      {
+        id:'p3', name:'Emulsion Product', owner:'Nagabhushan', status:'On hold',
+        start:'2025-07-01', parentId:null,
+        objective:'Develop a stable emulsion formulation for the agro-actives line, prioritizing shelf stability and field tank-mix compatibility.',
+        milestones:[
+          { id:'m4', name:'Formulation screening', target:'2026-01-10', status:'On hold', tasks:[
+            { id:'t9', name:'Surfactant matrix study', start:'2025-08-15', target:'2025-11-30', status:'On hold', updates:[
+              { text:'On hold pending raw-material approval and budget sign-off.', author:'Nagabhushan', date:'2025-08-25' }
+            ]}
+          ]}
+        ],
+        directTasks:[],
+        files:[],
+        subProjectIds:[]
+      },
+      {
+        id:'p4', name:'Vanillin Market Research', owner:'Harsha', status:'In progress',
+        start:'2025-07-15', parentId:'p1',
+        objective:'Size the domestic and export demand for food-grade Vanillin and benchmark landed cost against current imports.',
+        milestones:[
+          { id:'m5', name:'Demand sizing', target:'2025-10-30', status:'In progress', tasks:[
+            { id:'t10', name:'Customer interviews', start:'2025-07-20', target:'2025-09-30', status:'In progress', updates:[
+              { text:'Eight of twelve target customers interviewed; strong interest at price parity.', author:'Harsha', date:'2025-09-05' }
+            ]}
+          ]}
+        ],
+        directTasks:[], files:[], subProjectIds:[]
+      },
+      {
+        id:'p5', name:'Vanillin Manufacturing facility search', owner:'Nagabhushan', status:'On hold',
+        start:'2025-08-01', parentId:'p1',
+        objective:'Identify and evaluate contract-manufacturing or greenfield options for Vanillin production at commercial scale.',
+        milestones:[], directTasks:[], files:[], subProjectIds:[]
+      }
+    ];
+  }
+
+  seedSheet(){
+    return {
+      name:'Vanillin cost model',
+      cols:['Cost item','Vendor','Qty','Unit cost (₹)','Amount (₹)'],
+      rows:[
+        ['Guaiacol','Vendor A','120','480',''],
+        ['Catalyst (Pd/C)','Vendor B','5','9200',''],
+        ['Solvent recovery','Internal','1','14000',''],
+        ['Labour & utilities','Internal','1','22000',''],
+        ['QC & analysis','Lab','1','8500','']
+      ]
+    };
+  }
+
+  ROLES = {
+    'Admin':   { bg:'#efe9f7', fg:'#6b4ea8' },
+    'Manager': { bg:'#e9f0f8', fg:'#2f6aa8' },
+    'Viewer':  { bg:'#eef2f5', fg:'#5b6b7b' },
+    'Member':  { bg:'#f0f3f6', fg:'#46535f' }
+  };
+  ROLE_LIST = ['Admin','Manager','Viewer','Member'];
+  roleChip(r){ const x=this.ROLES[r]||this.ROLES['Member']; return { roleBg:x.bg, roleFg:x.fg }; }
+  ustatus(st){ return st==='Active' ? { bg:'#e4f3ea', fg:'#1b7a43', dot:'#21a25a' } : { bg:'#eceff3', fg:'#5b6b7b', dot:'#94a3b8' }; }
+  seedUsers(){
+    return [
+      { id:'u1', name:'Harsha', email:'harsha@manipalsplchem.com', role:'Admin', status:'Active', visibleOf:[] },
+      { id:'u2', name:'Amit Sharma', email:'amit.sharma@manipalsplchem.com', role:'Manager', status:'Active', visibleOf:['u1','u3','u4','u5'] },
+      { id:'u3', name:'Nagabhushan', email:'nagabhushan@manipalsplchem.com', role:'Member', status:'Active', visibleOf:[] },
+      { id:'u4', name:'Priya Nair', email:'priya.nair@manipalsplchem.com', role:'Member', status:'Active', visibleOf:[] },
+      { id:'u5', name:'Rohit Verma', email:'rohit.verma@manipalsplchem.com', role:'Member', status:'Active', visibleOf:[] },
+      { id:'u6', name:'Deepa Rao', email:'deepa.rao@manipalsplchem.com', role:'Viewer', status:'Active', visibleOf:['u1','u2'] },
+      { id:'u7', name:'Karthik Shenoy', email:'karthik.shenoy@manipalsplchem.com', role:'Manager', status:'Inactive', visibleOf:[] },
+      { id:'u8', name:'Sana Khan', email:'sana.khan@manipalsplchem.com', role:'Member', status:'Active', visibleOf:[] }
+    ];
+  }
+
+  // ---------- helpers ----------
+  fmt(iso){ if(!iso) return '—'; const p = iso.split('-'); if(p.length!==3) return iso; return p[2]+'/'+p[1]+'/'+p[0]; }
+  today(){ return new Date().toISOString().slice(0,10); }
+  initials(name){ return (name||'').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase(); }
+  uid(p){ return p+(this._n++); }
+  deriveTarget(p){
+    const ds = [];
+    (p.milestones||[]).forEach(m=>{ if(m.target) ds.push(m.target); });
+    (p.directTasks||[]).forEach(t=>{ if(t.target) ds.push(t.target); });
+    if(!ds.length) return null;
+    return ds.sort().slice(-1)[0];
+  }
+  findTask(p, id){
+    for(const m of p.milestones){ const t=m.tasks.find(t=>t.id===id); if(t) return t; }
+    return p.directTasks.find(t=>t.id===id);
+  }
+  mutate(id, fn){
+    this.setState(s=>({ projects: s.projects.map(p=>{ if(p.id!==id) return p; const c=JSON.parse(JSON.stringify(p)); fn(c); return c; }) }));
+  }
+  toast(msg){ this.setState({toast:msg}); clearTimeout(this._t); this._t=setTimeout(()=>this.setState({toast:null}), 2200); }
+
+  // ---------- nav ----------
+  openProject = (e)=>{ const d=e.currentTarget.dataset; this.setState({view:'detail',currentId:d.id,mode:d.mode||'view',expanded:{},detailStatusFilter:[],objExpanded:false,composerFor:null,addTaskFor:null,addingMilestone:false}); window.scrollTo(0,0); };
+  backToList = ()=>{ this.setState({view:'list'}); };
+  setMode = (e)=>{ this.setState({mode:e.currentTarget.dataset.mode,composerFor:null,addTaskFor:null,addingMilestone:false}); };
+
+  // ---------- list filters ----------
+  setOwner = (e)=>{ this.setState({filterOwner:e.target.value}); };
+  toggleStatus = (e)=>{ const st=e.currentTarget.dataset.status; this.setState(s=>({filterStatuses: s.filterStatuses.includes(st)? s.filterStatuses.filter(x=>x!==st): [...s.filterStatuses, st]})); };
+  setSearch = (e)=>{ this.setState({search:e.target.value}); };
+  clearFilters = ()=>{ this.setState({filterOwner:'all',filterStatuses:[],search:''}); };
+  removeChip = (e)=>{ const t=e.currentTarget.dataset.chip; if(t==='owner') this.setState({filterOwner:'all'}); else if(t==='search') this.setState({search:''}); else if(t.startsWith('status:')){ const st=t.slice(7); this.setState(s=>({filterStatuses:s.filterStatuses.filter(x=>x!==st)})); } };
+
+  // ---------- detail interactions ----------
+  toggleTask = (e)=>{ const id=e.currentTarget.dataset.id; this.setState(s=>({expanded:{...s.expanded,[id]:!s.expanded[id]}})); };
+  toggleObjective = ()=>{ this.setState(s=>({objExpanded:!s.objExpanded})); };
+  toggleDetailStatus = (e)=>{ const st=e.currentTarget.dataset.status; this.setState(s=>({detailStatusFilter: s.detailStatusFilter.includes(st)? s.detailStatusFilter.filter(x=>x!==st): [...s.detailStatusFilter, st]})); };
+  clearDetailStatus = ()=>{ this.setState({detailStatusFilter:[]}); };
+  draftInput = (e)=>{ this.draft[e.currentTarget.dataset.field]=e.target.value; };
+  commitEdit = (e)=>{ const tgt=e.currentTarget.dataset.target.split('|'); const val=e.target.value; this.mutate(this.state.currentId, c=>{ if(tgt[0]==='project'){ c[tgt[1]]=val; } else if(tgt[0]==='milestone'){ const m=c.milestones.find(m=>m.id===tgt[1]); if(m) m[tgt[2]]=val; } else if(tgt[0]==='task'){ const t=this.findTask(c,tgt[1]); if(t) t[tgt[2]]=val; } }); };
+
+  openComposer = (e)=>{ const id=e.currentTarget.dataset.id; const p=this.state.projects.find(x=>x.id===this.state.currentId); const t=p?this.findTask(p,id):null; const last=(t&&t.updates&&t.updates[0])?t.updates[0].text:''; this.draft.update=last; this.setState({composerFor:id}); };
+  cancelComposer = ()=>{ this.setState({composerFor:null}); };
+  submitUpdate = (e)=>{ const id=e.currentTarget.dataset.id; const text=(this.draft.update||'').trim(); if(!text){ this.toast('Write an update first'); return; } this.mutate(this.state.currentId, c=>{ const t=this.findTask(c,id); if(t) t.updates.unshift({text,author:'Harsha',date:this.today()}); }); this.draft.update=''; this.setState({composerFor:null,expanded:{...this.state.expanded,[id]:true}}); this.toast('Update posted'); };
+
+  openAddTask = (e)=>{ this.draft.at_name='';this.draft.at_start='';this.draft.at_target='';this.draft.at_status='Draft'; this.setState({addTaskFor:e.currentTarget.dataset.id,addingMilestone:false}); };
+  cancelAddTask = ()=>{ this.setState({addTaskFor:null}); };
+  submitAddTask = (e)=>{ const scope=e.currentTarget.dataset.scope; const name=(this.draft.at_name||'').trim(); if(!name){ this.toast('Task name is required'); return; } const target=this.draft.at_target||''; if(scope==='direct' && !target){ this.toast('Target date is required for project-level tasks'); return; } const task={id:this.uid('t'),name,start:this.draft.at_start||'',target,status:this.draft.at_status||'Draft',updates:[]}; this.mutate(this.state.currentId, c=>{ if(scope==='direct') c.directTasks.push(task); else { const m=c.milestones.find(m=>m.id===scope); if(m) m.tasks.push(task); } }); this.setState({addTaskFor:null}); };
+
+  openAddMilestone = ()=>{ this.draft.m_name='';this.draft.m_target='';this.draft.m_status='In progress'; this.setState({addingMilestone:true,addTaskFor:null}); };
+  cancelAddMilestone = ()=>{ this.setState({addingMilestone:false}); };
+  submitAddMilestone = ()=>{ const name=(this.draft.m_name||'').trim(); const target=this.draft.m_target||''; if(!name){ this.toast('Milestone name is required'); return; } if(!target){ this.toast('Milestone target date is required'); return; } this.mutate(this.state.currentId, c=>{ c.milestones.push({id:this.uid('m'),name,target,status:this.draft.m_status||'In progress',tasks:[]}); }); this.setState({addingMilestone:false}); };
+
+  removeTask = (e)=>{ const id=e.currentTarget.dataset.id; this.mutate(this.state.currentId, c=>{ c.milestones.forEach(m=>m.tasks=m.tasks.filter(t=>t.id!==id)); c.directTasks=c.directTasks.filter(t=>t.id!==id); }); };
+  removeMilestone = (e)=>{ const id=e.currentTarget.dataset.id; this.mutate(this.state.currentId, c=>{ c.milestones=c.milestones.filter(m=>m.id!==id); }); };
+  removeFile = (e)=>{ const id=e.currentTarget.dataset.id; this.mutate(this.state.currentId, c=>{ c.files=c.files.filter(f=>f.id!==id); }); };
+
+  // ---------- create project ----------
+  openNewProject = ()=>{ this.draft.np_name='';this.draft.np_objective='';this.draft.np_owner=this.TEAM[0];this.draft.np_start=this.today(); this.setState({newProjectOpen:true}); };
+  closeNewProject = ()=>{ this.setState({newProjectOpen:false}); };
+  submitNewProject = ()=>{ const name=(this.draft.np_name||'').trim(); if(!name){ this.toast('Project name is required'); return; } const id=this.uid('p'); const proj={id,name,owner:this.draft.np_owner||this.TEAM[0],status:'Draft',start:this.draft.np_start||this.today(),parentId:null,objective:(this.draft.np_objective||'').trim(),milestones:[],directTasks:[],files:[],subProjectIds:[]}; this.setState(s=>({projects:[...s.projects,proj],newProjectOpen:false,view:'detail',currentId:id,mode:'edit',expanded:{},objExpanded:false,composerFor:null,addTaskFor:null,addingMilestone:false})); window.scrollTo(0,0); };
+
+  // ---------- files / sheet ----------
+  openFile = (e)=>{ const id=e.currentTarget.dataset.id; const p=this.state.projects.find(x=>x.id===this.state.currentId); const f=p.files.find(f=>f.id===id); if(f.type==='sheet'){ this.setState({sheetOpen:true}); } else { this.setState({fileViewer:f}); } };
+  closeFile = ()=>{ this.setState({fileViewer:null}); };
+  download = ()=>{ this.toast('Downloading file…'); };
+  openSheet = ()=>{ this.setState({sheetOpen:true}); };
+  closeSheet = ()=>{ this.setState({sheetOpen:false}); };
+  sheetTool = (e)=>{ const tool=e.currentTarget.dataset.tool; if(tool==='Sum'){ this.recalcSheet(); this.toast('Column totals updated'); } else { this.toast(tool+' applied to selection'); } };
+  recalcSheet = ()=>{ const rows=this.state.sheet.rows; let total=0; rows.forEach((_,r)=>{ const q=parseFloat((document.getElementById('qty-'+r)||{}).value)||0; const u=parseFloat((document.getElementById('unit-'+r)||{}).value)||0; const a=q*u; const cell=document.getElementById('amt-'+r); if(cell) cell.textContent=a? a.toLocaleString('en-IN'):''; total+=a; }); const tEl=document.getElementById('sheet-total'); if(tEl) tEl.textContent='₹ '+total.toLocaleString('en-IN'); };
+  componentDidUpdate(_,prev){ if(this.state.sheetOpen && !prev.sheetOpen){ requestAnimationFrame(()=>requestAnimationFrame(()=>this.recalcSheet())); } }
+
+  clearToast = ()=>{ this.setState({toast:null}); };
+
+  // ---------- auth ----------
+  stop = (e)=>{ e.stopPropagation(); };
+  onLoginEmail = (e)=>{ this.setState({loginEmail:e.target.value, loginErr:null}); };
+  onLoginPwd = (e)=>{ this.setState({loginPwd:e.target.value, loginErr:null}); };
+  toggleShowPwd = ()=>{ this.setState(s=>({showPwd:!s.showPwd})); };
+  setPreviewMobile = (e)=>{ this.setState({previewMobile:e.currentTarget.dataset.m==='1'}); };
+  signIn = ()=>{
+    const email=(this.state.loginEmail||'').trim(); const pwd=this.state.loginPwd||'';
+    if(!email || !pwd){ this.setState({loginErr:'Enter your email and password to continue.'}); return; }
+    this.setState({loginLoading:true, loginErr:null});
+    clearTimeout(this._li);
+    this._li=setTimeout(()=>{
+      const u=this.state.users.find(x=>x.email.toLowerCase()===email.toLowerCase());
+      if(!u || pwd.toLowerCase()!=='tracker'){ this.setState({loginLoading:false, loginErr:'Incorrect email or password. Please try again.'}); return; }
+      if(u.status==='Inactive'){ this.setState({loginLoading:false, loginErr:'Your account is inactive — contact an administrator.'}); return; }
+      this.setState({loginLoading:false, view:'list', loginPwd:''}); window.scrollTo(0,0);
+    }, 1050);
+  };
+  forgotPwd = ()=>{ this.toast('Password reset link sent — check your email'); };
+
+  // ---------- account / admin nav ----------
+  toggleAccount = ()=>{ this.setState(s=>({accountOpen:!s.accountOpen})); };
+  closeAccount = ()=>{ this.setState({accountOpen:false}); };
+  openAdmin = ()=>{ this.setState({view:'admin', adminTab:'users', accountOpen:false}); window.scrollTo(0,0); };
+  signOut = ()=>{ this.setState({view:'login', accountOpen:false, loginPwd:'', loginErr:null}); window.scrollTo(0,0); };
+  setAdminTab = (e)=>{ this.setState({adminTab:e.currentTarget.dataset.tab, userModal:null}); };
+  gotoMapping = (e)=>{ this.setState({adminTab:'mappings', mapUserId:e.currentTarget.dataset.id, addEmpOpen:false, mapErr:null}); };
+
+  // ---------- users ----------
+  setUserSearch = (e)=>{ this.setState({userSearch:e.target.value}); };
+  setUserRole = (e)=>{ this.setState({userRole:e.target.value}); };
+  toggleUserStatus = (e)=>{ const st=e.currentTarget.dataset.status; this.setState(s=>({userStatuses:s.userStatuses.includes(st)?s.userStatuses.filter(x=>x!==st):[...s.userStatuses,st]})); };
+  clearUserFilters = ()=>{ this.setState({userSearch:'', userRole:'all', userStatuses:[]}); };
+  openAddUser = ()=>{ this.draft.uf_name=''; this.draft.uf_email=''; this.draft.uf_role='Member'; this.draft.uf_status='Active'; this.setState({userModal:{mode:'add'}, userErrors:{}}); };
+  openEditUser = (e)=>{ const id=e.currentTarget.dataset.id; const u=this.state.users.find(x=>x.id===id); if(!u) return; this.draft.uf_name=u.name; this.draft.uf_email=u.email; this.draft.uf_role=u.role; this.draft.uf_status=u.status; this.setState({userModal:{mode:'edit', id}, userErrors:{}}); };
+  closeUserModal = ()=>{ this.setState({userModal:null, userErrors:{}}); };
+  setUserFormStatus = (e)=>{ this.draft.uf_status=e.currentTarget.dataset.status; this.forceUpdate(); };
+  submitUser = ()=>{
+    const name=(this.draft.uf_name||'').trim(); const email=(this.draft.uf_email||'').trim(); const errs={};
+    if(!name) errs.name='Full name is required.';
+    if(!email) errs.email='Email is required.';
+    else if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) errs.email='Enter a valid email address.';
+    else { const eid=this.state.userModal.id; const dup=this.state.users.find(u=>u.email.toLowerCase()===email.toLowerCase() && u.id!==eid); if(dup) errs.email='Another user already uses this email.'; }
+    if(Object.keys(errs).length){ this.setState({userErrors:errs}); return; }
+    const m=this.state.userModal;
+    if(m.mode==='add'){ const id=this.uid('u'); this.setState(s=>({users:[...s.users,{id,name,email,role:this.draft.uf_role||'Member',status:this.draft.uf_status||'Active',visibleOf:[]}], userModal:null, userErrors:{}})); this.toast('Invite sent to '+email); }
+    else { const id=m.id; this.setState(s=>({users:s.users.map(u=>u.id===id?{...u,name,email,role:this.draft.uf_role||u.role,status:this.draft.uf_status||u.status}:u), userModal:null, userErrors:{}})); this.toast('User updated'); }
+  };
+  askDeactivate = (e)=>{ this.setState({deactivateId:e.currentTarget.dataset.id}); };
+  cancelDeactivate = ()=>{ this.setState({deactivateId:null}); };
+  confirmDeactivate = ()=>{ const id=this.state.deactivateId; this.setState(s=>({users:s.users.map(u=>u.id===id?{...u,status:'Inactive'}:u), deactivateId:null})); this.toast('User deactivated'); };
+  reactivate = (e)=>{ const id=e.currentTarget.dataset.id; this.setState(s=>({users:s.users.map(u=>u.id===id?{...u,status:'Active'}:u)})); this.toast('User reactivated'); };
+
+  // ---------- mappings ----------
+  selectMapUser = (e)=>{ this.setState({mapUserId:e.currentTarget.dataset.id, addEmpOpen:false, empSearch:'', mapErr:null}); };
+  setMapSearch = (e)=>{ this.setState({mapSearch:e.target.value}); };
+  openAddEmp = ()=>{ this.setState({addEmpOpen:true, empSearch:'', mapErr:null}); };
+  closeAddEmp = ()=>{ this.setState({addEmpOpen:false, empSearch:'', mapErr:null}); };
+  setEmpSearch = (e)=>{ this.setState({empSearch:e.target.value}); };
+  addEmp = (e)=>{ const empId=e.currentTarget.dataset.id; const uid=this.state.mapUserId; if(empId===uid){ this.setState({mapErr:"A user can't be mapped to view their own projects."}); return; } this.setState(s=>({users:s.users.map(u=>u.id===uid?{...u,visibleOf:u.visibleOf.includes(empId)?u.visibleOf:[...u.visibleOf,empId]}:u), addEmpOpen:false, empSearch:'', mapErr:null})); this.toast('Mapping added'); };
+  removeEmp = (e)=>{ const empId=e.currentTarget.dataset.emp; const uid=this.state.mapUserId; this.setState(s=>({users:s.users.map(u=>u.id===uid?{...u,visibleOf:u.visibleOf.filter(x=>x!==empId)}:u)})); this.toast('Mapping removed'); };
+
+  // ---------- shaping ----------
+  chip(status){ const st=this.STATUS[status]||this.STATUS['Draft']; return {label:status,bg:st.bg,fg:st.fg,dot:st.dot}; }
+  shapeTask(t){
+    const c=this.chip(t.status);
+    const ups=(t.updates||[]).map((u,i)=>({text:u.text,author:u.author,authorInitials:this.initials(u.author),dateFmt:this.fmt(u.date),isLatest:i===0,metaStyle: i===0?'background:#fbf6ee;border-left:3px solid #ef9a1e':'background:#fff;border-left:3px solid #e6eaef'}));
+    return { id:t.id, name:t.name, start:t.start||'', startFmt:this.fmt(t.start), target:t.target||'', targetFmt:this.fmt(t.target),
+      status:t.status, chipBg:c.bg, chipFg:c.fg, chipDot:c.dot,
+      latest:ups[0]||null, hasLatest:ups.length>0, prev:ups[1]||null, hasPrev:ups.length>1, showPrev:(ups.length>1 && !this.state.expanded[t.id]), history:ups.slice(1), latestText:(ups[0]?ups[0].text:''), expanded:!!this.state.expanded[t.id], composerOpen:this.state.composerFor===t.id };
+  }
+
+  renderVals(){
+    const s=this.state;
+    const accent = this.props.accent ?? '#2b6aa8';
+    const orgName = this.props.orgName ?? 'Project Tracker';
+    const density = this.props.density ?? 'comfortable';
+    const rowPad = density==='compact' ? '9px 16px' : density==='spacious' ? '17px 16px' : '13px 16px';
+    const H = {
+      openProject:this.openProject, backToList:this.backToList, setMode:this.setMode,
+      setOwner:this.setOwner, toggleStatus:this.toggleStatus, setSearch:this.setSearch, clearFilters:this.clearFilters, removeChip:this.removeChip,
+      toggleTask:this.toggleTask, toggleObjective:this.toggleObjective, draftInput:this.draftInput, commitEdit:this.commitEdit,
+      openComposer:this.openComposer, cancelComposer:this.cancelComposer, submitUpdate:this.submitUpdate,
+      openAddTask:this.openAddTask, cancelAddTask:this.cancelAddTask, submitAddTask:this.submitAddTask,
+      openAddMilestone:this.openAddMilestone, cancelAddMilestone:this.cancelAddMilestone, submitAddMilestone:this.submitAddMilestone,
+      removeTask:this.removeTask, removeMilestone:this.removeMilestone, removeFile:this.removeFile,
+      openNewProject:this.openNewProject, closeNewProject:this.closeNewProject, submitNewProject:this.submitNewProject,
+      openFile:this.openFile, closeFile:this.closeFile, download:this.download, openSheet:this.openSheet, closeSheet:this.closeSheet, sheetTool:this.sheetTool, recalcSheet:this.recalcSheet,
+      clearToast:this.clearToast
+    };
+    const base = { accent, orgName, rowPad, cols:this.COLS, navy:this.NAVY,
+      isList:s.view==='list', isDetail:s.view==='detail',
+      newProjectOpen:s.newProjectOpen, sheetOpen:s.sheetOpen, fileOpen:!!s.fileViewer,
+      todayVal:this.today(), defaultOwner:this.TEAM[0],
+      toast:s.toast, hasToast:!!s.toast, team:this.TEAM, statusList:Object.keys(this.STATUS),
+      ...H };
+
+    // ---- LIST ----
+    const top = s.projects.filter(p=>!p.parentId);
+    let rows = top.filter(p=>{
+      if(s.filterOwner!=='all' && p.owner!==s.filterOwner) return false;
+      if(s.filterStatuses.length && !s.filterStatuses.includes(p.status)) return false;
+      if(s.search && !p.name.toLowerCase().includes(s.search.toLowerCase())) return false;
+      return true;
+    }).map((p,i)=>{ const c=this.chip(p.status); return { id:p.id, sl:String(i+1).padStart(2,'0'), name:p.name, startFmt:this.fmt(p.start), targetFmt:this.fmt(this.deriveTarget(p)), status:p.status, chipBg:c.bg, chipFg:c.fg, chipDot:c.dot, owner:p.owner, ownerInitials:this.initials(p.owner), isDraft:p.status==='Draft' }; });
+    const statusOptions = Object.keys(this.STATUS).map(k=>{ const st=this.STATUS[k]; const active=s.filterStatuses.includes(k); return { label:k, active, btnStyle:'display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:999px;font:600 12px/1 \'IBM Plex Sans\';cursor:pointer;transition:.12s;border:1px solid '+(active?st.fg:'#d8dee5')+';background:'+(active?st.bg:'#fff')+';color:'+(active?st.fg:'#5b6b7b'), dot:st.dot }; });
+    const activeChips=[];
+    if(s.filterOwner!=='all') activeChips.push({chip:'owner',label:'Owner · '+s.filterOwner});
+    s.filterStatuses.forEach(st=>activeChips.push({chip:'status:'+st,label:st}));
+    if(s.search) activeChips.push({chip:'search',label:'“'+s.search+'”'});
+    base.rows=rows; base.owners=[...new Set(top.map(p=>p.owner))]; base.statusOptions=statusOptions;
+    base.ownerValue=s.filterOwner; base.searchValue=s.search; base.activeChips=activeChips; base.hasFilters=activeChips.length>0;
+    base.resultEmpty=rows.length===0; base.projCount=top.length;
+
+    // ---- DETAIL ----
+    const p=s.projects.find(x=>x.id===s.currentId);
+    if(p){
+      const isEdit=s.mode==='edit'; const isView=!isEdit;
+      const c=this.chip(p.status);
+      const parent = p.parentId ? s.projects.find(x=>x.id===p.parentId) : null;
+      const seg='display:inline-flex;align-items:center;gap:6px;padding:6px 13px;border-radius:6px;font:600 12px/1 \'IBM Plex Sans\';cursor:pointer;border:none;transition:.12s;';
+      const F=s.detailStatusFilter||[]; const fActive=F.length>0;
+      const tMatch=(t)=>!fActive||F.includes(t.status);
+      const mMatch=(m)=>!fActive||F.includes(m.status)||m.tasks.some(t=>F.includes(t.status));
+      const fMiles=p.milestones.filter(mMatch);
+      const fDirect=p.directTasks.filter(tMatch);
+      const statusFilters=Object.keys(this.STATUS).map(k=>{ const st=this.STATUS[k]; const active=F.includes(k); return { label:k, dot:st.dot, btnStyle:'display:inline-flex;align-items:center;gap:5px;padding:4px 9px;border-radius:999px;font:600 11px/1 \'IBM Plex Sans\';cursor:pointer;transition:.12s;border:1px solid '+(active?st.fg:'#dde3e9')+';background:'+(active?st.bg:'#fff')+';color:'+(active?st.fg:'#8593a0') }; });
+      base.detail = {
+        id:p.id, name:p.name, start:p.start, startFmt:this.fmt(p.start),
+        status:p.status, chipBg:c.bg, chipFg:c.fg, chipDot:c.dot,
+        owner:p.owner, ownerInitials:this.initials(p.owner),
+        targetFmt:this.fmt(this.deriveTarget(p)),
+        objective:p.objective, objExpanded:s.objExpanded, objLong:(p.objective||'').length>150,
+        hasParent:!!parent, parentId:parent?parent.id:'', parentName:parent?parent.name:'',
+        isEdit, isView,
+        milestones: fMiles.map(m=>{ const mc=this.chip(m.status); const vis=m.tasks.filter(tMatch); return { id:m.id, name:m.name, target:m.target||'', targetFmt:this.fmt(m.target), status:m.status, chipBg:mc.bg, chipFg:mc.fg, chipDot:mc.dot, tasks:vis.map(t=>this.shapeTask(t)), hasTasks:vis.length>0, addOpen:s.addTaskFor===m.id }; }),
+        hasMilestones:p.milestones.length>0,
+        statusFilters, filterActive:fActive, noFilterMatch:(fActive && fMiles.length===0 && fDirect.length===0),
+        directTasks: fDirect.map(t=>this.shapeTask(t)), hasDirect:fDirect.length>0, directAddOpen:s.addTaskFor==='direct',
+        files: p.files.map(f=>({ id:f.id, name:f.name, type:f.type, size:f.size, by:f.by, isSheet:f.type==='sheet', typeLabel: f.type==='sheet'?'Spreadsheet':f.type.toUpperCase(), iconBg: f.type==='pdf'?'#fbe9e7':f.type==='xlsx'?'#e4f3ea':f.type==='sheet'?'#e9f0f8':'#eef1f4', iconFg: f.type==='pdf'?'#c0392b':f.type==='xlsx'?'#1b7a43':f.type==='sheet'?'#2b6aa8':'#64748b' })),
+        hasFiles:p.files.length>0,
+        subProjects: p.subProjectIds.map(id=>{ const sp=s.projects.find(x=>x.id===id); if(!sp) return null; const sc=this.chip(sp.status); return { id:sp.id, name:sp.name, status:sp.status, chipBg:sc.bg, chipFg:sc.fg, chipDot:sc.dot, owner:sp.owner, ownerInitials:this.initials(sp.owner) }; }).filter(Boolean),
+        hasSub:p.subProjectIds.length>0,
+        addingMilestone:s.addingMilestone,
+        viewBtnStyle: seg+(isView?'background:#fff;color:'+this.NAVY:'background:transparent;color:rgba(255,255,255,.78)'),
+        editBtnStyle: seg+(isEdit?'background:#fff;color:'+this.NAVY:'background:transparent;color:rgba(255,255,255,.78)')
+      };
+    }
+
+    // ---- FILE VIEWER ----
+    if(s.fileViewer){ const f=s.fileViewer; base.viewer={ name:f.name, type:f.type, renderable:f.type==='pdf'||f.type==='png', isPdf:f.type==='pdf' }; }
+
+    // ---- SHEET ----
+    base.sheet = { name:s.sheet.name, cols:s.sheet.cols, rows:s.sheet.rows.map((cells,r)=>({ r, idx:String(r+1), item:cells[0], vendor:cells[1], qty:cells[2], unit:cells[3] })) };
+    base.sheetTools=['Table','List','Merge','Sum','Pivot'];
+
+    // ============ AUTH / ACCOUNT ============
+    base.isLogin = s.view==='login';
+    base.isAdmin = s.view==='admin';
+    base.notLogin = s.view!=='login';
+    base.accountOpen = s.accountOpen;
+    const lbtn='width:100%;display:flex;align-items:center;justify-content:center;gap:9px;border:none;border-radius:9px;padding:12px;font:600 14px \'IBM Plex Sans\';cursor:pointer;transition:.15s;color:#fff;background:'+accent+';';
+    const ptab='border:none;border-radius:999px;padding:6px 14px;font:600 12px \'IBM Plex Sans\';cursor:pointer;transition:.12s;';
+    base.login = {
+      email:s.loginEmail, pwd:s.loginPwd, showPwd:s.showPwd, hidePwd:!s.showPwd, pwType:s.showPwd?'text':'password',
+      error:s.loginErr||'', hasError:!!s.loginErr, loading:s.loginLoading, idle:!s.loginLoading,
+      btnStyle: s.loginLoading ? lbtn+'opacity:.78;cursor:default' : lbtn,
+      frameStyle: s.previewMobile ? 'width:384px;max-width:100%;background:#15212e;border-radius:46px;padding:13px;box-shadow:0 26px 60px rgba(21,33,46,.34)' : 'width:416px;max-width:100%',
+      cardStyle: s.previewMobile ? 'background:#fff;border-radius:34px;overflow:hidden' : 'background:#fff;border:1px solid #e4e9ee;border-radius:16px;box-shadow:0 18px 50px rgba(20,40,60,.13);overflow:hidden',
+      deskTabStyle: ptab+(s.previewMobile?'background:transparent;color:#8a96a3':'background:#1c3a5e;color:#fff'),
+      mobTabStyle: ptab+(s.previewMobile?'background:#1c3a5e;color:#fff':'background:transparent;color:#8a96a3')
+    };
+    const me=s.users.find(u=>u.id==='u1')||s.users[0]||{name:'Harsha',email:'',role:'Admin'};
+    base.currentUser = { name:me.name, email:me.email, role:me.role, initials:this.initials(me.name), isAdmin:me.role==='Admin' };
+
+    // ============ ADMIN ============
+    const pc={}; s.projects.forEach(p=>{ pc[p.owner]=(pc[p.owner]||0)+1; });
+    const projCountFor=(name)=>pc[name]||0;
+    const projLabel=(n)=> n===1?'1 project':n+' projects';
+    const navBase='display:flex;align-items:center;gap:10px;width:100%;text-align:left;border:none;border-radius:8px;padding:10px 12px;font:600 13.5px \'IBM Plex Sans\';cursor:pointer;transition:.12s;';
+    base.admin = { isUsers:s.adminTab==='users', isMappings:s.adminTab==='mappings',
+      usersNavStyle: navBase+(s.adminTab==='users'?'background:#eef4fb;color:#1c3a5e':'background:transparent;color:#5b6b7b'),
+      mapNavStyle: navBase+(s.adminTab==='mappings'?'background:#eef4fb;color:#1c3a5e':'background:transparent;color:#5b6b7b') };
+    base.ucols='minmax(0,1.7fr) minmax(0,1.6fr) 96px 102px 80px 90px';
+
+    let urows=s.users.filter(u=>{
+      if(s.userRole!=='all' && u.role!==s.userRole) return false;
+      if(s.userStatuses.length && !s.userStatuses.includes(u.status)) return false;
+      if(s.userSearch){ const q=s.userSearch.toLowerCase(); if(!(u.name.toLowerCase().includes(q)||u.email.toLowerCase().includes(q))) return false; }
+      return true;
+    }).map(u=>{ const rc=this.roleChip(u.role); const sc=this.ustatus(u.status); return { id:u.id, name:u.name, initials:this.initials(u.name), email:u.email, role:u.role, roleBg:rc.roleBg, roleFg:rc.roleFg, status:u.status, stBg:sc.bg, stFg:sc.fg, stDot:sc.dot, mappedLabel:u.visibleOf.length?String(u.visibleOf.length):'—', isActive:u.status==='Active', isInactive:u.status!=='Active', isSelf:u.id==='u1' }; });
+    base.userRows=urows; base.userCount=s.users.length;
+    base.userResultEmpty=urows.length===0 && s.users.length>0;
+    base.usersEmptyAll=s.users.length===0;
+    base.userSearchVal=s.userSearch; base.userRoleVal=s.userRole; base.roleOptions=this.ROLE_LIST;
+    const ustatBtn='display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:999px;font:600 12px/1 \'IBM Plex Sans\';cursor:pointer;transition:.12s;';
+    base.userStatusOptions=['Active','Inactive'].map(k=>{ const sc=this.ustatus(k); const active=s.userStatuses.includes(k); return { label:k, dot:sc.dot, btnStyle: ustatBtn+'border:1px solid '+(active?sc.fg:'#d8dee5')+';background:'+(active?sc.bg:'#fff')+';color:'+(active?sc.fg:'#5b6b7b') }; });
+    base.userFiltered = !!s.userSearch || s.userRole!=='all' || s.userStatuses.length>0;
+
+    if(s.userModal){
+      const m=s.userModal; const statusActive=(this.draft.uf_status||'Active')==='Active';
+      const segb='border:none;border-radius:6px;padding:7px 16px;font:600 12.5px \'IBM Plex Sans\';cursor:pointer;transition:.12s;';
+      base.userModalOpen=true;
+      base.um={ isAdd:m.mode==='add', isEdit:m.mode==='edit', title:m.mode==='add'?'Add user':'Edit user',
+        name:this.draft.uf_name||'', email:this.draft.uf_email||'', role:this.draft.uf_role||'Member',
+        roleList:this.ROLE_LIST, submitLabel:m.mode==='add'?'Send invite':'Save changes',
+        errName:s.userErrors.name||'', errEmail:s.userErrors.email||'', hasErrName:!!s.userErrors.name, hasErrEmail:!!s.userErrors.email,
+        nameBorder:s.userErrors.name?'#d98273':'#d8dee5', emailBorder:s.userErrors.email?'#d98273':'#d8dee5',
+        activeBtnStyle: segb+(statusActive?'background:#fff;color:#1b7a43;box-shadow:0 1px 2px rgba(20,40,60,.12)':'background:transparent;color:#8a96a3'),
+        inactiveBtnStyle: segb+(!statusActive?'background:#fff;color:#b42318;box-shadow:0 1px 2px rgba(20,40,60,.12)':'background:transparent;color:#8a96a3') };
+    } else base.userModalOpen=false;
+
+    if(s.deactivateId){ const u=s.users.find(x=>x.id===s.deactivateId); base.deactivateOpen=true; base.deactivateName=u?u.name:'this user'; } else base.deactivateOpen=false;
+
+    // ============ MAPPINGS ============
+    const mapUser = s.mapUserId ? s.users.find(u=>u.id===s.mapUserId) : null;
+    const mq=(s.mapSearch||'').toLowerCase();
+    const itemBase='display:flex;align-items:center;gap:10px;padding:11px 13px;border-bottom:1px solid #f2f4f7;cursor:pointer;border-left:3px solid transparent;transition:.12s;';
+    base.map={
+      search:s.mapSearch,
+      hasSelection:!!mapUser, noSelection:!mapUser,
+      users: s.users.filter(u=> !mq || u.name.toLowerCase().includes(mq) || u.email.toLowerCase().includes(mq)).map(u=>{ const sel=u.id===s.mapUserId; const c=u.visibleOf.length; return { id:u.id, name:u.name, initials:this.initials(u.name), role:u.role, count:c, itemStyle: itemBase+(sel?'background:#eef4fb;border-left-color:#2b6aa8':'background:#fff'), badgeStyle: 'min-width:22px;height:22px;padding:0 7px;border-radius:999px;display:flex;align-items:center;justify-content:center;font:600 11px \'IBM Plex Sans\';flex:none;'+(c>0?'background:#e9f0f8;color:#2f6aa8':'background:#eceff3;color:#9aa6b2') }; })
+    };
+    if(mapUser){
+      const mapped=mapUser.visibleOf.map(id=>{ const e=s.users.find(x=>x.id===id); if(!e) return null; const n=projCountFor(e.name); return { empId:id, name:e.name, initials:this.initials(e.name), projLabel:projLabel(n) }; }).filter(Boolean);
+      const names=mapped.map(m=>m.name);
+      let summary;
+      if(!names.length) summary=mapUser.name+" isn't mapped to anyone yet — they can only see their own projects.";
+      else { const shown=names.slice(0,2).join(', '); const more=names.length>2?(', +'+(names.length-2)+' more'):''; summary=mapUser.name+' can view projects owned by: '+shown+more+'.'; }
+      const rc=this.roleChip(mapUser.role);
+      const candBase='display:flex;align-items:center;gap:10px;padding:9px 12px;border-bottom:1px solid #f2f4f7;';
+      const cands=s.users.filter(u=>!mapUser.visibleOf.includes(u.id)).filter(u=> !s.empSearch || u.name.toLowerCase().includes(s.empSearch.toLowerCase()) || u.email.toLowerCase().includes(s.empSearch.toLowerCase())).map(u=>{ const self=u.id===mapUser.id; return { id:u.id, name:u.name, initials:this.initials(u.name), email:u.email, projLabel:projLabel(projCountFor(u.name)), selfNote: self?'· can’t map to self':'', rowStyle: candBase+(self?'opacity:.55;cursor:not-allowed;background:#fafbfc':'cursor:pointer;background:#fff') }; });
+      base.map.panel={ id:mapUser.id, name:mapUser.name, initials:this.initials(mapUser.name), role:mapUser.role, roleBg:rc.roleBg, roleFg:rc.roleFg,
+        summary, mapped, hasMapped:mapped.length>0, empty:mapped.length===0,
+        addOpen:s.addEmpOpen, empSearch:s.empSearch, mapErr:s.mapErr||'', hasErr:!!s.mapErr, cands, noCands:cands.length===0 };
+    }
+    const ov=s.users.filter(u=>u.visibleOf.length>0).map(u=>{ const names=u.visibleOf.map(id=>{ const e=s.users.find(x=>x.id===id); return e?{name:e.name}:null; }).filter(Boolean); return { id:u.id, name:u.name, initials:this.initials(u.name), shown:names.slice(0,4), hasMore:names.length>4, moreCount:names.length-4, count:u.visibleOf.length }; });
+    base.overviewRows=ov; base.overviewCount=ov.length; base.overviewEmpty=ov.length===0;
+
+    base.stop=this.stop; base.onLoginEmail=this.onLoginEmail; base.onLoginPwd=this.onLoginPwd; base.toggleShowPwd=this.toggleShowPwd; base.setPreviewMobile=this.setPreviewMobile; base.signIn=this.signIn; base.forgotPwd=this.forgotPwd;
+    base.toggleAccount=this.toggleAccount; base.closeAccount=this.closeAccount; base.openAdmin=this.openAdmin; base.signOut=this.signOut; base.setAdminTab=this.setAdminTab; base.gotoMapping=this.gotoMapping;
+    base.setUserSearch=this.setUserSearch; base.setUserRole=this.setUserRole; base.toggleUserStatus=this.toggleUserStatus; base.clearUserFilters=this.clearUserFilters; base.openAddUser=this.openAddUser; base.openEditUser=this.openEditUser; base.closeUserModal=this.closeUserModal; base.setUserFormStatus=this.setUserFormStatus; base.submitUser=this.submitUser; base.askDeactivate=this.askDeactivate; base.cancelDeactivate=this.cancelDeactivate; base.confirmDeactivate=this.confirmDeactivate; base.reactivate=this.reactivate;
+    base.selectMapUser=this.selectMapUser; base.setMapSearch=this.setMapSearch; base.openAddEmp=this.openAddEmp; base.closeAddEmp=this.closeAddEmp; base.setEmpSearch=this.setEmpSearch; base.addEmp=this.addEmp; base.removeEmp=this.removeEmp; base.toggleDetailStatus=this.toggleDetailStatus; base.clearDetailStatus=this.clearDetailStatus;
+
+    return base;
+  }
+}
+</script>
+</body>
+</html>
