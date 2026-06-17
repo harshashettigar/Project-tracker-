@@ -135,6 +135,9 @@ from projects p;
 -- Row-Level Security (the security boundary, §3/§17–18/§21.3) lives in
 -- supabase/migrations/20260617090300_rls.sql, with Phase 9 hardening in
 -- 20260617091000_hardening.sql (can_create_projects() excludes viewers from the
--- projects INSERT policy; the view above is security_invoker). See those files
--- for the full function and policy definitions; not duplicated here.
+-- projects INSERT policy; the view above is security_invoker) and
+-- 20260617100000_editable_latest_update.sql (task_updates_update_latest lets
+-- owner/admin edit the NEWEST task update in place via is_latest_task_update();
+-- prior updates stay immutable — amends §13 append-only). See those files for the
+-- full function and policy definitions; not duplicated here.
 -- ==========================================================================

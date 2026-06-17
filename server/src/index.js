@@ -744,6 +744,31 @@ app.post('/api/tasks/:id/updates', async (req, res) => {
   res.status(201).json({ ok: true, update: data });
 });
 
+// Edit the LATEST task update in place (§13, amended 2026-06-17 — see decisions).
+// Owner/admin only; RLS (task_updates_update_latest) additionally restricts this
+// to the newest update for the task, so prior history stays immutable. Only the
+// body is written — task and author are never reassigned. A non-latest update or
+// an unauthorised caller matches no row under RLS, which we surface as a 403.
+app.patch('/api/updates/:id', async (req, res) => {
+  const ctx = await requireActiveUser(req, res);
+  if (!ctx) return;
+  const { supabase } = ctx;
+  const { id } = req.params;
+
+  const body = (req.body?.body || '').trim();
+  if (!body) return res.status(400).json({ ok: false, error: 'Write an update first.' });
+
+  const { data, error } = await supabase
+    .from('task_updates')
+    .update({ body })
+    .eq('id', id)
+    .select('id')
+    .maybeSingle();
+  if (error) return res.status(400).json({ ok: false, error: error.message });
+  if (!data) return res.status(403).json({ ok: false, error: 'not allowed' });
+  res.json({ ok: true, update: data });
+});
+
 // ==========================================================================
 // File attachments (PRD §15). Uploads flow THROUGH the API: validate (type +
 // size), scan (§15.2), store into the private bucket via the service role, then

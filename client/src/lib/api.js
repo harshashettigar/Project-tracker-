@@ -70,4 +70,5 @@ export const api = {
   updateTask: (id, patch) => request('PATCH', `/api/tasks/${id}`, patch),
   deleteTask: (id) => request('DELETE', `/api/tasks/${id}`),
   postUpdate: (taskId, body) => request('POST', `/api/tasks/${taskId}/updates`, { body }),
+  editUpdate: (id, body) => request('PATCH', `/api/updates/${id}`, { body }),
 };
