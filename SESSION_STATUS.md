@@ -3,63 +3,60 @@
 > **Read this first, write it last.** It is the handoff between sessions.
 > Keep it short. Move durable facts to `CLAUDE.md`; keep only what's moving here.
 
-**Last updated:** 2026-06-17 (Phase 8 complete, merged to `main`)
-**Current phase:** Phase 9 — Hardening (final phase, next)
+**Last updated:** 2026-06-17 (Phase 9 complete — v1 build order finished, merged to `main`)
+**Current phase:** v1 build order complete. No phase in flight.
 
 ---
 
 ## State in one line
 
-Phase 8 (Admin — Visibility mappings) is done and verified against the hosted
-Supabase project: admins can grant/revoke who-sees-whose-projects, and a grant
-actually changes RLS visibility. All nine build-order screens now exist; next is
-Phase 9 — hardening (the small security/polish backlog below).
+All nine build-order phases (0–9) are done and merged to `main`. Phase 9 hardening
+applied two DB security fixes and added admin audit logging, verified against the
+hosted Supabase project. The v1 scope per the PRD is functionally complete.
 
-## Done
+## Done (Phase 9 — Hardening)
 
-- **Admin Mappings tab** (PRD §17): user picker (searchable, with mapped counts),
-  mapping panel (plain-language summary §17.2, removable mapped employees with
-  project counts, "+ Add employee" search-and-select excluding self + already-
-  mapped, self shown disabled "can't map to self"), and the overview/audit table
-  (§17.4). Self-map blocked, empty-state message, idempotent duplicate add.
-- **Admin area is two tabs** now (`AdminTabs`: Users | Mappings); the Users-tab
-  "Mapped" count deep-links into Mappings preselecting that user.
-- **Server** (admin-gated): `GET /api/admin/mappings` (users + owned-project counts
-  + grants), `POST /api/admin/mappings` (grant; self-map 400; duplicate idempotent),
-  `DELETE /api/admin/mappings/:id` (revoke). Writes only touch `user_visibility`;
-  visibility is already enforced by the project-list RLS (`can_see_project_owner`).
-- Verified via API (list + counts; non-admin 403; self-map 400; **grant made the
-  viewer actually see the owner's project, revoke removed it**; idempotent re-add)
-  and in-browser (tabs, picker counts, populated + empty summaries, add/remove
-  round-trip, overview table, Mapped-count deep-link). DB left with only the seed
-  mapping (Manager→Member). Merged `feature/admin-mappings` → `main`.
+- **RLS: viewers can't create projects** — migration `20260617091000_hardening.sql`
+  adds `can_create_projects()` and rewrites the `projects` INSERT policy so a
+  viewer is denied at the DB (not just the API). Verified: viewer direct insert →
+  `42501`; member still allowed.
+- **Derived-target view RLS-safe** — `project_target_dates` is now
+  `security_invoker = on`. Verified: a viewer sees 0 rows, the service role sees 3.
+  Mirrored into `docs/schema.sql`.
+- **Audit trail (§20.2)** — admin actions write to `audit_log` via the service
+  role (`audit()` helper): `user.create/update/deactivate/reactivate`,
+  `mapping.add/remove`, each with actor + timestamp. Verified end-to-end.
+- **§20 review pass** — findings recorded in `docs/decisions.md` (auth, permissions,
+  sessions, files, text-escaping, append-only updates, dd/mm/yyyy all confirmed;
+  deferrals noted). Applied via `run-sql-api.mjs` over HTTPS. Merged
+  `feature/hardening` → `main`.
+
+## What v1 includes (phases 0–9, all merged)
+
+0 scaffolding (schema+RLS+seed) · 1 auth & shell · 2 project list · 3 detail view ·
+4 detail edit · 5 files · 6 sub-projects · 7 admin users · 8 admin mappings ·
+9 hardening. All verified via API + in-browser; seed data intact throughout.
 
 ## Next slice (do this session)
 
-**Phase 9 — Hardening** (PRD §20 + the accumulated backlog). No new screens —
-tighten and polish. Priorities:
-  1. **RLS: viewers can't create projects.** Today the `projects` INSERT policy is
-     `owner = auth.uid() OR is_admin()` — it doesn't check role, so a viewer is
-     blocked from creating only by the API guard. Add a role check to the policy
-     (new migration; apply via `run-sql-api.mjs`). Re-verify viewer create → denied
-     at the DB.
-  2. **Derived-target view RLS-safe.** Set `security_invoker = on` on
-     `project_target_dates` so it can't leak across RLS if ever queried directly.
-  3. Sweep §20: confirm permissions matrix (§18) holds at the DB for every
-     write path; check user-supplied text is escaped on render (React does this —
-     spot-check the update/objective rendering); session expiry/sign-out clears
-     state (Phase 1); file type/size/scan (Phase 5). Note anything deferred.
+_None queued._ v1 build order is complete. Candidate follow-ups if work continues
+(all currently in Backlog, none are v1-blocking):
+- Final cross-cutting acceptance pass against PRD §22 (release scope) and the
+  Appendix B acceptance scenarios, if those are in `docs/`.
+- Pick up a Backlog item below, or start a deferred/future-version item (PRD §23)
+  only with explicit sign-off — those are out of v1.
 
-**Definition of done:** the two RLS fixes are applied to the hosted DB and
-re-verified (viewer create denied at the DB; view safe); a short §20 pass is done
-with findings recorded in decisions.md; no regressions in the smoke paths.
+## Backlog (deferred; not in v1 scope unless re-prioritised)
 
-## Backlog (out of scope for the current slice)
-
-- **Files:** real virus scanner (wire behind `SCAN_ENABLED`); milestone/task-scoped
-  attachments (schema supports them; v1 does project-level only).
-- **Admin users:** email change on edit (identity re-issue) — deferred; v1 read-only.
-- Deep-linkable URLs (real router) — deferred; in-memory routing for now.
+- **Files:** wire a real (self-hosted) virus scanner behind `SCAN_ENABLED`
+  (currently a stub hook that fails closed); milestone/task-scoped attachments
+  (schema supports them; v1 does project-level only).
+- **Admin users:** email change on edit (auth identity re-issue) — v1 read-only.
+- **A11y polish:** broader keyboard nav + visible focus states (§20.4).
+- **Routing:** deep-linkable URLs (real router) — v1 uses in-memory routing.
+- **Audit:** surface `audit_log` in an admin UI (currently write + admin-read RLS
+  only); audit project/milestone/task edits if desired (v1 scopes §20.2 to
+  access/membership/mapping changes + the per-task update history).
 
 ## Blockers / open
 
@@ -73,7 +70,7 @@ with findings recorded in decisions.md; no regressions in the smoke paths.
 
 ## Branch state
 
-- Active branch: `main` (Phase 8 merged; nothing in flight).
+- Active branch: `main` (Phase 9 merged; nothing in flight).
 - Unmerged work: none.
 
 ## Useful facts for next session
@@ -81,20 +78,16 @@ with findings recorded in decisions.md; no regressions in the smoke paths.
 - Demo password for all four seeded accounts: `DemoPass!234`. Emails: admin
   `appuser1.msc@manipalsplchem.com`, `manager.demo@…`, `member.demo@…`,
   `viewer.demo@…` (all `@manipalsplchem.com`, all `active`).
-- RLS lives in `supabase/migrations/20260617090300_rls.sql`; the depth/updated_at
-  triggers in `…090100_triggers.sql`; derived view in `…090200_derived_target.sql`.
-  For Phase 9, add a NEW migration (don't edit applied ones) and apply with
-  `cd server && node scripts/run-sql-api.mjs <file.sql>`. Mirror changes into
-  `docs/schema.sql` (the human-readable mirror).
-- `is_admin()` and `can_see_project_owner()`/`can_edit_project()` are SECURITY
-  DEFINER helpers in the RLS migration — reuse them. Roles: `user_role` enum
-  (admin/manager/member/viewer); a viewer-excluding insert check can read the
-  caller's role via the `users` table (as `is_admin()` does).
+- Migrations in `supabase/migrations/` are authoritative (now 5 files, latest
+  `20260617091000_hardening.sql`); `docs/schema.sql` is the human-readable mirror.
+  Add a NEW migration for further DB changes; apply with
+  `cd server && node scripts/run-sql-api.mjs <file.sql>` (HTTPS).
 - Seed: 4 users (one per role), 1 mapping (Manager→Member), 2 top-level projects
   (Plant Safety Audit — Member; ERP Rollout — Manager) + 1 sub-project (Audit —
   Unit B), 2 milestones, 3 tasks, 2 task updates, 0 attachments.
 - Run locally: API `cd server && node src/index.js` (:4000); client preview via
   `.claude/launch.json` (server `client`, :5173). Storage: `npm run setup:storage`.
+  First-time DB setup: `setup:auth` then seed; `setup:storage` for the bucket.
 - Full API surface (all via `requireActiveUser`; project writes also
   `canEditProject`; admin routes via `requireAdmin`): `GET /api/me`; `GET /api/users`;
   projects `GET/POST /api/projects`, `GET/PATCH /api/projects/:id`; milestones
@@ -106,9 +99,12 @@ with findings recorded in decisions.md; no regressions in the smoke paths.
   `GET /api/admin/mappings`, `POST /api/admin/mappings`, `DELETE /api/admin/mappings/:id`.
 - Client: in-memory routing (`screens/AuthedApp.jsx`: list|detail|admin{tab}).
   Screens: ProjectList, ProjectDetail (view/edit), AdminUsers, AdminMappings.
-  Components: AppShell (title/actions/onAdmin), edit/* , Files*, TaskUpdateThread,
+  Components: AppShell, edit/*, Files*/FileViewerModal, TaskUpdateThread,
   StatusChip, RoleChip/UserStatusChip, Avatar, AdminTabs, *Modal. `lib/api.js` +
   `lib/format.js`. Client reads repo-root `.env` via Vite `envDir: '..'`.
+- DB security helpers (SECURITY DEFINER, in the RLS + hardening migrations):
+  `is_admin()`, `can_see_project_owner()`, `can_edit_project()`,
+  `can_create_projects()`. Reuse these.
 - `.env` (gitignored): Supabase URL + anon + service-role + access token,
   `APP_URL`, optional `ATTACHMENTS_BUCKET`.
 
@@ -116,21 +112,25 @@ with findings recorded in decisions.md; no regressions in the smoke paths.
 
 ## Session log (newest first)
 
+- **2026-06-17** — Built Phase 9 (Hardening): migration `…091000_hardening.sql`
+  (viewer-exclude on projects INSERT via `can_create_projects()`; `security_invoker`
+  on `project_target_dates`), applied over HTTPS and verified at the DB; added
+  admin `audit_log` writes (`audit()` helper) for user + mapping changes; §20
+  review pass recorded. Merged `feature/hardening` → `main`. **v1 build order
+  complete.** Blockers: none.
 - **2026-06-17** — Built Phase 8 (Admin Mappings): admin-gated
-  `GET/POST/DELETE /api/admin/mappings`; user picker + mapping panel (summary,
-  add/remove, self-map blocked, idempotent) + overview table; Users/Mappings tabs.
-  Verified visibility actually changes on grant/revoke. Merged
-  `feature/admin-mappings` → `main`. Next: Phase 9 Hardening. Blockers: none.
-- **2026-06-17** — Built Phase 7 (Admin Users): admin-gated user CRUD +
+  `GET/POST/DELETE /api/admin/mappings`; picker + panel (summary, add/remove,
+  self-map blocked, idempotent) + overview; Users/Mappings tabs. Verified
+  visibility changes on grant/revoke. Merged `feature/admin-mappings`.
+- **2026-06-17** — Built Phase 7 (Admin Users): admin user CRUD +
   invite-to-set-password + deactivate/reactivate w/ self-guard; Users tab UI;
-  account-menu Admin wiring. Verified (incl. real invite + cleanup). Merged
-  `feature/admin-users` → `main`. Next: Phase 8.
+  account-menu Admin wiring. Verified. Merged `feature/admin-users`.
 - **2026-06-17** — Built Phase 6 (Sub-projects): add/link/unlink via
-  PATCH/POST `parent_project_id` (+ depth trigger), `SubProjectsEditor`. Verified.
-  Merged `feature/sub-projects` → `main`.
+  PATCH/POST `parent_project_id` (+ depth trigger). Verified. Merged
+  `feature/sub-projects`.
 - **2026-06-17** — Built Phase 5 (Files): private bucket + setup:storage;
   server-mediated upload (type/size/scan-hook); signed-URL in-app viewer +
-  download fallback; attach/remove in Edit. Verified. Merged `feature/files`.
+  download fallback. Verified. Merged `feature/files`.
 - **2026-06-17** — Built Phase 4 (Detail Edit): write endpoints + §12.1/§19.1
   validation; editable summary, milestone/task CRUD + reorder, update composer.
   Verified. Merged `feature/detail-edit`.

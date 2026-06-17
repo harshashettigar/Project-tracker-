@@ -185,6 +185,24 @@ const USER_ROLES = new Set(['admin', 'manager', 'member', 'viewer']);
 const USER_STATUSES = new Set(['active', 'inactive']);
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+// Audit trail (PRD §20.2): record access/membership/mapping changes with actor +
+// timestamp. audit_log has no user-facing INSERT policy, so writes go via the
+// service role. Best-effort — an audit write must never fail the user's action.
+async function audit(actorId, action, entityType, entityId, detail) {
+  if (!serviceClient) return;
+  try {
+    await serviceClient.from('audit_log').insert({
+      actor_user_id: actorId,
+      action,
+      entity_type: entityType,
+      entity_id: entityId,
+      detail: detail ?? null,
+    });
+  } catch {
+    /* never block the action on an audit failure */
+  }
+}
+
 // Derived target date (PRD §12.2) for a set of project ids: the latest target
 // across each project's milestones and its direct (no-milestone) tasks, or null.
 // Computed from RLS-scoped child rows (not the bypassing view) — see decisions.md.
@@ -930,6 +948,7 @@ app.post('/api/admin/users', async (req, res) => {
       return res.status(409).json({ ok: false, error: 'Another user already uses this email.' });
     return res.status(400).json({ ok: false, error: error.message });
   }
+  await audit(ctx.profile.id, 'user.create', 'user', data.id, { email, role, status });
   res.status(201).json({ ok: true, user: data });
 });
 
@@ -966,6 +985,13 @@ app.patch('/api/admin/users/:id', async (req, res) => {
   // Writes go AS THE USER so RLS (users_admin_write) is the final gate.
   const { error } = await supabase.from('users').update(patch).eq('id', id);
   if (error) return res.status(400).json({ ok: false, error: error.message });
+  const action =
+    'status' in patch
+      ? patch.status === 'inactive'
+        ? 'user.deactivate'
+        : 'user.reactivate'
+      : 'user.update';
+  await audit(profile.id, action, 'user', id, patch);
   res.json({ ok: true });
 });
 
@@ -1036,6 +1062,10 @@ app.post('/api/admin/mappings', async (req, res) => {
     if (error.code === '23505') return res.json({ ok: true });
     return res.status(400).json({ ok: false, error: error.message });
   }
+  await audit(profile.id, 'mapping.add', 'user_visibility', data.id, {
+    viewer_user_id,
+    owner_user_id,
+  });
   res.status(201).json({ ok: true, id: data.id });
 });
 
@@ -1043,9 +1073,10 @@ app.post('/api/admin/mappings', async (req, res) => {
 app.delete('/api/admin/mappings/:id', async (req, res) => {
   const ctx = await requireAdmin(req, res);
   if (!ctx) return;
-  const { supabase } = ctx;
+  const { supabase, profile } = ctx;
   const { error } = await supabase.from('user_visibility').delete().eq('id', req.params.id);
   if (error) return res.status(400).json({ ok: false, error: error.message });
+  await audit(profile.id, 'mapping.remove', 'user_visibility', req.params.id, null);
   res.json({ ok: true });
 });
 
