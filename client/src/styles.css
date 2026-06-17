@@ -816,11 +816,109 @@ body {
 }
 
 .file-chip {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
   background: #fff;
   border: 1px solid var(--border);
   border-radius: 8px;
-  padding: 0.4rem 0.7rem;
+  padding: 0.25rem 0.4rem 0.25rem 0.55rem;
   font-size: 0.85rem;
+}
+
+.file-open {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: none;
+  border: none;
+  font: inherit;
+  cursor: pointer;
+  text-align: left;
+  padding: 0.15rem;
+}
+
+.file-meta {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.file-name {
+  font-weight: 600;
+}
+
+.file-sub {
+  font-size: 0.72rem;
+  color: var(--muted-solid);
+}
+
+.file-remove {
+  border: none;
+  background: none;
+  color: var(--muted-solid);
+  cursor: pointer;
+  font-size: 0.85rem;
+  padding: 0.2rem 0.35rem;
+  border-radius: 6px;
+}
+
+.file-remove:hover:not(:disabled) {
+  background: #fdecea;
+  color: var(--error);
+}
+
+.file-attach {
+  margin-top: 0.8rem;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.85rem;
+}
+
+/* In-app viewer modal (§15.1). */
+.viewer-modal {
+  max-width: 900px;
+  width: 92vw;
+  height: 86vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.viewer-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.6rem;
+}
+
+.viewer-name {
+  font-weight: 600;
+}
+
+.viewer-frame {
+  flex: 1;
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.viewer-image {
+  flex: 1;
+  max-width: 100%;
+  object-fit: contain;
+  border-radius: 8px;
+}
+
+.viewer-fallback {
+  text-align: center;
+  padding: 2rem 1rem;
+}
+
+.viewer-fallback .primary-button {
+  display: inline-block;
+  margin-top: 1rem;
+  text-decoration: none;
 }
 
 .subproject-link {

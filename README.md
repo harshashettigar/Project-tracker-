@@ -64,6 +64,17 @@ cp .env.example .env
    psql "$DATABASE_URL" -f supabase/seed.sql
    ```
 
+5. **Create the file-storage bucket** (Phase 5 / PRD §15). A one-off script
+   creates the private `attachments` bucket over HTTPS (works behind the
+   Postgres-port firewall). Idempotent:
+
+   ```
+   cd server && npm run setup:storage
+   ```
+
+   Attachments are private: the API validates type + size, runs the scan hook,
+   stores via the service role, and serves files as short-lived signed URLs.
+
 `docs/schema.sql` is a human-readable mirror of the migrations; the migrations in
 `supabase/migrations/` are authoritative.
 

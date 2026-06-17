@@ -4,15 +4,18 @@
 
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
+import { randomUUID } from 'node:crypto';
 import dotenv from 'dotenv';
 import express from 'express';
 import cors from 'cors';
+import multer from 'multer';
 
 // .env lives at the repo root, two levels above server/src/.
 const __dirname = dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: resolve(__dirname, '../../.env') });
 
 const { serviceClient, clientForToken } = await import('./supabase.js');
+const { scanFile } = await import('./scan.js');
 
 const app = express();
 app.use(cors());
@@ -102,6 +105,52 @@ app.get('/api/users', async (req, res) => {
 
 // Canonical entity status set (PRD §7.2). Any write naming a status is checked.
 const STATUS_VALUES = new Set(['draft', 'in_progress', 'on_hold', 'completed', 'at_risk']);
+
+// File attachments (PRD §15). Private bucket; the API serves signed URLs.
+const ATTACHMENTS_BUCKET = process.env.ATTACHMENTS_BUCKET || 'attachments';
+const MAX_FILE_BYTES = 25 * 1024 * 1024; // ~25 MB cap (§15.2)
+
+// Allow-list (§15.2): extension → { file_type enum, accepted MIME(s), magic test }.
+// We validate extension AND declared MIME AND leading "magic" bytes so a file
+// can't lie about its type. DOCX/XLSX are ZIP containers, so they share the ZIP
+// signature and are disambiguated by extension + MIME.
+const ZIP_MAGIC = (b) => b[0] === 0x50 && b[1] === 0x4b; // "PK"
+const ALLOWED_TYPES = {
+  pdf: {
+    type: 'pdf',
+    mimes: ['application/pdf'],
+    magic: (b) => b[0] === 0x25 && b[1] === 0x50 && b[2] === 0x44 && b[3] === 0x46, // %PDF
+  },
+  png: {
+    type: 'png',
+    mimes: ['image/png'],
+    magic: (b) => b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47,
+  },
+  jpg: {
+    type: 'jpg',
+    mimes: ['image/jpeg'],
+    magic: (b) => b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff,
+  },
+  jpeg: {
+    type: 'jpg',
+    mimes: ['image/jpeg'],
+    magic: (b) => b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff,
+  },
+  docx: {
+    type: 'docx',
+    mimes: ['application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
+    magic: ZIP_MAGIC,
+  },
+  xlsx: {
+    type: 'xlsx',
+    mimes: ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'],
+    magic: ZIP_MAGIC,
+  },
+};
+const WRONG_TYPE_MSG = 'Unsupported file type. Allowed: PDF, PNG, JPG, DOCX, XLSX.';
+
+// In-memory upload so the server can validate + scan the bytes before storing.
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: MAX_FILE_BYTES } });
 
 // Can the caller edit this project? Owner or admin (PRD §18). Reads the project
 // AS THE USER, so an invisible project also yields false. RLS is the real gate;
@@ -247,8 +296,9 @@ app.get('/api/projects/:id', async (req, res) => {
         .order('sort_order'),
       supabase
         .from('attachments')
-        .select('id, file_name, file_type, size_bytes')
-        .eq('project_id', id),
+        .select('id, file_name, file_type, size_bytes, uploaded_by, created_at')
+        .eq('project_id', id)
+        .order('created_at'),
       supabase
         .from('projects')
         .select('id, name, status')
@@ -338,7 +388,13 @@ app.get('/api/projects/:id', async (req, res) => {
       tasks: tasksByMilestone.get(m.id) || [],
     })),
     projectTasks,
-    files: files || [],
+    files: (files || []).map((f) => ({
+      id: f.id,
+      file_name: f.file_name,
+      file_type: f.file_type,
+      size_bytes: f.size_bytes,
+      uploaded_by_name: nameById.get(f.uploaded_by) ?? null,
+    })),
     subProjects: subs || [],
   });
 });
@@ -607,6 +663,129 @@ app.post('/api/tasks/:id/updates', async (req, res) => {
     .single();
   if (error) return res.status(400).json({ ok: false, error: error.message });
   res.status(201).json({ ok: true, update: data });
+});
+
+// ==========================================================================
+// File attachments (PRD §15). Uploads flow THROUGH the API: validate (type +
+// size), scan (§15.2), store into the private bucket via the service role, then
+// record the row AS THE USER (RLS attachments_write_editor gates capability).
+// Downloads are served as short-lived signed URLs so the bucket stays private.
+// ==========================================================================
+
+// Attach a file to a project (§11.2/§15.2). Owner/admin only.
+app.post('/api/projects/:id/files', (req, res) => {
+  upload.single('file')(req, res, async (uploadErr) => {
+    if (uploadErr) {
+      if (uploadErr.code === 'LIMIT_FILE_SIZE')
+        return res.status(400).json({ ok: false, error: 'File is too large (max 25 MB).' });
+      return res.status(400).json({ ok: false, error: 'Upload failed.' });
+    }
+
+    const ctx = await requireActiveUser(req, res);
+    if (!ctx) return;
+    const { supabase, profile } = ctx;
+    const { id } = req.params;
+
+    if (!(await canEditProject(supabase, profile, id)))
+      return res.status(403).json({ ok: false, error: 'not allowed' });
+
+    const file = req.file;
+    if (!file) return res.status(400).json({ ok: false, error: 'No file provided.' });
+
+    // Validate type: extension + declared MIME + magic bytes must all agree (§15.2).
+    const ext = (file.originalname.split('.').pop() || '').toLowerCase();
+    const spec = ALLOWED_TYPES[ext];
+    if (!spec) return res.status(400).json({ ok: false, error: WRONG_TYPE_MSG });
+    if (!spec.mimes.includes(file.mimetype))
+      return res.status(400).json({ ok: false, error: WRONG_TYPE_MSG });
+    if (!spec.magic(file.buffer))
+      return res.status(400).json({ ok: false, error: WRONG_TYPE_MSG });
+    if (file.size > MAX_FILE_BYTES)
+      return res.status(400).json({ ok: false, error: 'File is too large (max 25 MB).' });
+
+    // Scan BEFORE storing (§15.2). A non-clean verdict blocks the upload.
+    const verdict = await scanFile(file.buffer, { name: file.originalname, type: spec.type });
+    if (!verdict.clean)
+      return res
+        .status(422)
+        .json({ ok: false, error: 'File failed the security scan and was not stored.' });
+
+    // Store into the private bucket via the service role (bypasses storage ACLs).
+    if (!serviceClient)
+      return res.status(503).json({ ok: false, error: 'storage not configured' });
+    const storagePath = `${id}/${randomUUID()}.${spec.type}`;
+    const { error: upErr } = await serviceClient.storage
+      .from(ATTACHMENTS_BUCKET)
+      .upload(storagePath, file.buffer, { contentType: file.mimetype, upsert: false });
+    if (upErr) return res.status(500).json({ ok: false, error: upErr.message });
+
+    // Record the row AS THE USER so RLS confirms edit rights; roll back the
+    // stored object if the insert is rejected.
+    const { data, error } = await supabase
+      .from('attachments')
+      .insert({
+        project_id: id,
+        milestone_id: req.body?.milestone_id || null,
+        task_id: req.body?.task_id || null,
+        file_name: file.originalname,
+        file_type: spec.type,
+        size_bytes: file.size,
+        storage_path: storagePath,
+        uploaded_by: profile.id,
+        scanned_at: new Date().toISOString(),
+      })
+      .select('id, file_name, file_type, size_bytes')
+      .single();
+    if (error) {
+      await serviceClient.storage.from(ATTACHMENTS_BUCKET).remove([storagePath]);
+      return res.status(400).json({ ok: false, error: error.message });
+    }
+    res.status(201).json({ ok: true, file: data });
+  });
+});
+
+// Signed URL to view/download a file (§15.1). Anyone who can see the project may
+// read it — confirmed by reading the row AS THE USER (RLS scopes it).
+app.get('/api/files/:id/url', async (req, res) => {
+  const ctx = await requireActiveUser(req, res);
+  if (!ctx) return;
+  const { supabase } = ctx;
+
+  const { data: row } = await supabase
+    .from('attachments')
+    .select('storage_path, file_name')
+    .eq('id', req.params.id)
+    .maybeSingle();
+  if (!row) return res.status(404).json({ ok: false, error: 'not found' });
+
+  if (!serviceClient) return res.status(503).json({ ok: false, error: 'storage not configured' });
+  const { data, error } = await serviceClient.storage
+    .from(ATTACHMENTS_BUCKET)
+    .createSignedUrl(row.storage_path, 120); // short-lived (2 min)
+  if (error) return res.status(500).json({ ok: false, error: error.message });
+  res.json({ ok: true, url: data.signedUrl, file_name: row.file_name });
+});
+
+// Remove a file (§11.2). Owner/admin only. Deletes the row then the object.
+app.delete('/api/files/:id', async (req, res) => {
+  const ctx = await requireActiveUser(req, res);
+  if (!ctx) return;
+  const { supabase, profile } = ctx;
+
+  const { data: row } = await supabase
+    .from('attachments')
+    .select('project_id, storage_path')
+    .eq('id', req.params.id)
+    .maybeSingle();
+  if (!row) return res.status(404).json({ ok: false, error: 'not found' });
+  if (!(await canEditProject(supabase, profile, row.project_id)))
+    return res.status(403).json({ ok: false, error: 'not allowed' });
+
+  const { error } = await supabase.from('attachments').delete().eq('id', req.params.id);
+  if (error) return res.status(400).json({ ok: false, error: error.message });
+  if (serviceClient)
+    await serviceClient.storage.from(ATTACHMENTS_BUCKET).remove([row.storage_path]);
+  res.json({ ok: true });
 });
 
 const port = process.env.PORT || 4000;

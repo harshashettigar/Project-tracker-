@@ -13,6 +13,7 @@ import AppShell from '../components/AppShell.jsx';
 import StatusChip from '../components/StatusChip.jsx';
 import Avatar from '../components/Avatar.jsx';
 import TaskUpdateThread from '../components/TaskUpdateThread.jsx';
+import FilesSection from '../components/FilesSection.jsx';
 import SummaryEditor from '../components/edit/SummaryEditor.jsx';
 import MilestoneEditor from '../components/edit/MilestoneEditor.jsx';
 import AddMilestoneForm from '../components/edit/AddMilestoneForm.jsx';
@@ -346,19 +347,8 @@ export default function ProjectDetail({ projectId, initialMode = 'view', onNavig
             <p className="muted">No milestones or tasks yet.</p>
           )}
 
-          {/* Additional files (§10.2/§15) — read-only strip; attach/remove in Phase 5. */}
-          {data.files.length > 0 && (
-            <section className="strip">
-              <h2 className="section-title">Additional Files</h2>
-              <ul className="file-strip">
-                {data.files.map((f) => (
-                  <li key={f.id} className="file-chip" title={`${f.file_type} · ${f.size_bytes} bytes`}>
-                    📎 {f.file_name}
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )}
+          {/* Additional files (§10.2/§15): in-app viewer; attach/remove in Edit. */}
+          <FilesSection projectId={project.id} files={data.files} editing={editing} reload={reload} />
 
           {/* Sub-projects (§10.2/§14) — links; add/link/remove in Phase 6. */}
           {data.subProjects.length > 0 && (

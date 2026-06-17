@@ -56,3 +56,13 @@
 
 \- Phase 4: reorder (milestones/tasks) renumbers the whole sibling list's `sort_order` to array position via per-item PATCHes, then reloads — robust even when seed rows share sort_order 0. Edits/adds/removes persist immediately and refetch the detail tree; the summary band uses an explicit "Save changes".
 
+\- Phase 5: virus-scan (§15.2) is a PLUGGABLE hook (`server/src/scan.js`), stubbed (no-op pass) in v1 to keep the app standalone — no third-party scan integration. `SCAN_ENABLED=true` fails closed until a real (self-hosted) scanner is wired. Decision over the external-API option because CLAUDE.md mandates "no integration with any other system." `scanned_at` is stamped on store.
+
+\- Phase 5: uploads/downloads flow THROUGH the Express API, not client→Storage direct. The server validates type (extension + declared MIME + magic bytes, all must agree) and size (≤25 MB), scans, then stores to a PRIVATE `attachments` bucket via the service role. Downloads are short-lived (120s) signed URLs. Keeps the server/DB the security boundary and the bucket private.
+
+\- Phase 5: in-app viewer (§15.1) renders PDF (iframe) and PNG/JPG (img) from the signed URL; DOCX/XLSX can't render in-app, so they fall back to download-and-open with brief messaging.
+
+\- Phase 5: storage bucket is created by `server/scripts/setup-storage.mjs` (`npm run setup:storage`) over HTTPS — one-off, idempotent. Bucket name overridable via `ATTACHMENTS_BUCKET` (default `attachments`). Added `multer` (memory storage) for multipart parsing.
+
+\- Phase 5: this slice implements PROJECT-level attachments (the "Additional Files" strip). Per §15 the schema also allows milestone/task-scoped files (`attachments.milestone_id`/`task_id`); attaching at those levels is deferred (not required for v1 review flow).
+
