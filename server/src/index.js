@@ -28,6 +28,22 @@ function bearerToken(req) {
   return scheme?.toLowerCase() === 'bearer' && token ? token : null;
 }
 
+// Read the subject (user id) from a JWT WITHOUT a network call. We do NOT trust
+// this for authorisation — every query below runs AS THE USER, and PostgREST
+// verifies the token's signature + expiry on each one (a forged/expired token
+// makes the profile read fail). This only tells us which row to select, so we can
+// skip the extra round-trip to the auth server that supabase.auth.getUser() costs
+// on every request (the dominant latency over the HTTPS-only office link).
+function jwtSubject(token) {
+  try {
+    const payload = token.split('.')[1];
+    const claims = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'));
+    return typeof claims.sub === 'string' ? claims.sub : null;
+  } catch {
+    return null;
+  }
+}
+
 // The shared sign-in gate (PRD §3/§8.3). Resolves the caller to a user-scoped
 // Supabase client (so RLS applies to every query) plus their active app profile.
 // On any failure it writes the response and returns null, so callers do:
@@ -38,18 +54,25 @@ async function requireActiveUser(req, res) {
     res.status(401).json({ ok: false, error: 'missing token' });
     return null;
   }
-  const supabase = clientForToken(token);
-  const { data: auth, error: authError } = await supabase.auth.getUser();
-  if (authError || !auth?.user) {
+  const userId = jwtSubject(token);
+  if (!userId) {
     res.status(401).json({ ok: false, error: 'invalid token' });
     return null;
   }
+  const supabase = clientForToken(token);
+  // This read is the token's real validity gate: PostgREST rejects a bad/expired
+  // signature (surfaced as an error → 401), returns no row for a deleted user
+  // (→ 403 no profile), or the profile for an active one.
   const { data: profile, error } = await supabase
     .from('users')
     .select('id, full_name, email, role, status')
-    .eq('id', auth.user.id)
-    .single();
-  if (error || !profile) {
+    .eq('id', userId)
+    .maybeSingle();
+  if (error) {
+    res.status(401).json({ ok: false, error: 'invalid token' });
+    return null;
+  }
+  if (!profile) {
     res.status(403).json({ ok: false, error: 'no profile' });
     return null;
   }
@@ -244,10 +267,12 @@ app.get('/api/projects', async (req, res) => {
   if (error) return res.status(500).json({ ok: false, error: error.message });
 
   const ids = projects.map((p) => p.id);
-  const targetByProject = await deriveTargets(supabase, ids);
-
-  // Owner names for the Responsible column (§9.3). Directory read is RLS-allowed.
-  const { data: users } = await supabase.from('users').select('id, full_name');
+  // Derived targets and the owner-name directory (§9.3) are independent, so they
+  // run in one parallel wave rather than back-to-back. Directory read is RLS-OK.
+  const [targetByProject, { data: users }] = await Promise.all([
+    deriveTargets(supabase, ids),
+    supabase.from('users').select('id, full_name'),
+  ]);
   const nameById = new Map((users || []).map((u) => [u.id, u.full_name]));
 
   const rows = projects.map((p) => ({
@@ -351,31 +376,48 @@ app.get('/api/projects/:id', async (req, res) => {
   if (error) return res.status(500).json({ ok: false, error: error.message });
   if (!project) return res.status(404).json({ ok: false, error: 'not found' });
 
-  // Children, all RLS-scoped to projects the caller can see.
-  const [{ data: milestones }, { data: tasks }, { data: files }, { data: subs }] =
-    await Promise.all([
-      supabase
-        .from('milestones')
-        .select('id, name, target_date, status, sort_order')
-        .eq('project_id', id)
-        .order('sort_order'),
-      supabase
-        .from('tasks')
-        .select('id, milestone_id, name, start_date, target_date, status, sort_order')
-        .eq('project_id', id)
-        .order('sort_order'),
-      supabase
-        .from('attachments')
-        .select('id, file_name, file_type, size_bytes, uploaded_by, created_at')
-        .eq('project_id', id)
-        .order('created_at'),
-      supabase
-        .from('projects')
-        .select('id, name, status')
-        .eq('parent_project_id', id)
-        .order('name'),
-    ]);
+  // One parallel wave for everything that depends only on the project id (the
+  // directory + parent name have no inter-dependency, so they ride along here
+  // rather than as extra sequential round-trips). All RLS-scoped to the caller.
+  const [
+    { data: milestones },
+    { data: tasks },
+    { data: files },
+    { data: subs },
+    { data: users },
+    { data: parent },
+  ] = await Promise.all([
+    supabase
+      .from('milestones')
+      .select('id, name, target_date, status, sort_order')
+      .eq('project_id', id)
+      .order('sort_order'),
+    supabase
+      .from('tasks')
+      .select('id, milestone_id, name, start_date, target_date, status, sort_order')
+      .eq('project_id', id)
+      .order('sort_order'),
+    supabase
+      .from('attachments')
+      .select('id, file_name, file_type, size_bytes, uploaded_by, created_at')
+      .eq('project_id', id)
+      .order('created_at'),
+    supabase
+      .from('projects')
+      .select('id, name, status')
+      .eq('parent_project_id', id)
+      .order('name'),
+    supabase.from('users').select('id, full_name'),
+    project.parent_project_id
+      ? supabase
+          .from('projects')
+          .select('name')
+          .eq('id', project.parent_project_id)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+  ]);
 
+  // Update threads depend on the task ids, so they follow the wave above.
   const taskIds = (tasks || []).map((t) => t.id);
   let updates = [];
   if (taskIds.length) {
@@ -387,19 +429,8 @@ app.get('/api/projects/:id', async (req, res) => {
     updates = data || [];
   }
 
-  // Names: owner, parent, and update authors. Directory read is RLS-allowed.
-  const { data: users } = await supabase.from('users').select('id, full_name');
   const nameById = new Map((users || []).map((u) => [u.id, u.full_name]));
-
-  let parentName = null;
-  if (project.parent_project_id) {
-    const { data: parent } = await supabase
-      .from('projects')
-      .select('name')
-      .eq('id', project.parent_project_id)
-      .maybeSingle();
-    parentName = parent?.name ?? null;
-  }
+  const parentName = parent?.name ?? null;
 
   // Group updates under their task (already newest-first).
   const updatesByTask = new Map();
@@ -434,7 +465,17 @@ app.get('/api/projects/:id', async (req, res) => {
     }
   }
 
-  const targets = await deriveTargets(supabase, [id]);
+  // Derived target (§12.2) = latest target across milestones + direct (no-
+  // milestone) tasks. Computed from rows already loaded above, so it costs no
+  // extra round-trip. ISO dates (yyyy-mm-dd) compare correctly as strings.
+  let targetDate = null;
+  for (const m of milestones || []) {
+    if (m.target_date && (!targetDate || m.target_date > targetDate)) targetDate = m.target_date;
+  }
+  for (const t of tasks || []) {
+    if (!t.milestone_id && t.target_date && (!targetDate || t.target_date > targetDate))
+      targetDate = t.target_date;
+  }
 
   res.json({
     ok: true,
@@ -448,7 +489,7 @@ app.get('/api/projects/:id', async (req, res) => {
       owner_name: nameById.get(project.owner_user_id) ?? null,
       parent_project_id: project.parent_project_id,
       parent_name: parentName,
-      target_date: targets.get(id) ?? null,
+      target_date: targetDate,
     },
     milestones: (milestones || []).map((m) => ({
       id: m.id,
