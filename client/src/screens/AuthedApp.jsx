@@ -10,7 +10,19 @@ export default function AuthedApp() {
   const [route, setRoute] = useState({ name: 'list' });
 
   if (route.name === 'detail') {
-    return <ProjectDetail projectId={route.id} onNavigate={setRoute} />;
+    return (
+      <ProjectDetail
+        key={route.id}
+        projectId={route.id}
+        initialMode={route.mode ?? 'view'}
+        onNavigate={setRoute}
+      />
+    );
   }
-  return <ProjectList onOpen={(id) => setRoute({ name: 'detail', id })} />;
+  return (
+    <ProjectList
+      onOpen={(id) => setRoute({ name: 'detail', id })}
+      onEdit={(id) => setRoute({ name: 'detail', id, mode: 'edit' })}
+    />
+  );
 }

@@ -46,3 +46,13 @@
 
 \- Phase 3: from the list, BOTH the eye and pencil row actions open the detail (View mode) for now; the in-detail View/Edit toggle's Edit option is a Phase-4 placeholder (toast). Pencil will deep-open Edit mode once Phase 4 lands.
 
+\- Phase 4: list pencil now deep-opens Edit mode (`route.mode='edit'`); eye opens View. The §9.4 "new project opens immediately in Edit mode" behaviour is now wired (create → navigate into the project's Edit view).
+
+\- Phase 4: edit writes act AS THE USER so RLS (`can_edit_project`, append-only `task_updates` insert) is the real boundary; the API adds explicit owner/admin checks (`canEditProject()`) only to return clean 403s. Target date is never written — derived only (§12.2).
+
+\- Phase 4: §12.1 required-fields are enforced in three places — in-context UI markers/validation, the API (project-level task & milestone target required, re-checked on PATCH against the merged row), and the DB CHECK as backstop.
+
+\- Phase 4: owner reassignment is admin-only (API guard + RLS WITH CHECK); non-admin owners see their own name read-only in the summary editor.
+
+\- Phase 4: reorder (milestones/tasks) renumbers the whole sibling list's `sort_order` to array position via per-item PATCHes, then reloads — robust even when seed rows share sort_order 0. Edits/adds/removes persist immediately and refetch the detail tree; the summary band uses an explicit "Save changes".
+

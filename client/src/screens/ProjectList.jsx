@@ -14,7 +14,7 @@ import NewProjectModal from '../components/NewProjectModal.jsx';
 
 const ALL_OWNERS = '__all__';
 
-export default function ProjectList({ onOpen }) {
+export default function ProjectList({ onOpen, onEdit }) {
   const { profile } = useAuth();
   const canCreate = profile?.role !== 'viewer'; // PRD §18
 
@@ -87,8 +87,10 @@ export default function ProjectList({ onOpen }) {
 
   async function handleCreate(payload) {
     const project = await api.createProject(payload);
-    await load();
-    setToast('Project created.');
+    // PRD §9.4: a new project opens immediately in Edit mode so the owner can
+    // begin adding milestones and tasks.
+    if (onEdit) onEdit(project.id);
+    else await load();
     return project;
   }
 
@@ -229,7 +231,7 @@ export default function ProjectList({ onOpen }) {
                         type="button"
                         className="icon-button"
                         title="Open in Edit mode"
-                        onClick={() => onOpen?.(p.id)}
+                        onClick={() => onEdit?.(p.id)}
                       >
                         ✎
                       </button>
