@@ -128,6 +128,16 @@ _None queued._ v1 build order is complete. Candidate follow-ups if work continue
 
 ## Session log (newest first)
 
+- **2026-06-18** — Detail-page design fixes to match the reference mockup
+  (`ProjectDetail.jsx`, `AppShell.jsx`, `TaskUpdateThread.jsx`, `styles.css`):
+  (1) Objective moved inside the white summary card (divided from the facts).
+  (2) Task updates redesigned as labeled LATEST/PREVIOUS boxes with full
+  wrapped bodies — the old one-line nowrap predecessor was forcing the task
+  table wide and getting clipped by the milestone card's `overflow:hidden`.
+  (3) Top bar now shows logo + "Project Tracker" brand (home link) + project
+  name; logo loads from `/logo.png` with a "PT" text fallback — **drop the real
+  logo at `client/public/logo.png`** (no asset in repo yet). Verified in the
+  preview. Merged `feature/detail-design-fixes` → `main`. Not yet pushed.
 - **2026-06-18** — Made the project-list name clickable: it now renders as a
   link-styled button firing the existing `onOpen` handler, opening the project
   detail in View mode (the 👁 icon did this before). Client-only change
