@@ -12,6 +12,7 @@
 
 import { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { supabase } from '../lib/supabase.js';
+import { API_BASE } from '../lib/api.js';
 
 const AuthContext = createContext(null);
 
@@ -33,7 +34,7 @@ export function AuthProvider({ children }) {
   // Confirm the signed-in user has an active app profile. Returns the profile,
   // or throws an Error whose message is one of: 'inactive' | 'no profile' | …
   const loadProfile = useCallback(async (accessToken) => {
-    const res = await fetch('/api/me', {
+    const res = await fetch(`${API_BASE}/api/me`, {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
     const body = await res.json().catch(() => ({}));
