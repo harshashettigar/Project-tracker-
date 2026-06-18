@@ -4,12 +4,16 @@
 
 import { supabase } from './supabase.js';
 
-// In dev, VITE_API_BASE_URL is empty: calls use relative /api paths that Vite's
-// dev server proxies to the backend (see vite.config.js). In production the
-// frontend (Vercel) and backend (Railway) are on different origins, so
-// VITE_API_BASE_URL is set to the deployed backend URL (e.g.
-// https://your-api.up.railway.app) and is prepended to every request.
-const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
+// Where API calls go. Resolution order:
+//   1. VITE_API_BASE_URL if set (lets you point at any backend per-deploy).
+//   2. Otherwise, in a production build, the deployed Railway backend.
+//   3. Otherwise (local dev), '' → relative /api paths that Vite's dev server
+//      proxies to localhost:4000 (see vite.config.js).
+// The production default means the deployed site works even if the hosting
+// platform's env var is missing/misconfigured; the env var still overrides it.
+const PROD_API_BASE = 'https://project-tracker-production-6516.up.railway.app';
+const API_BASE =
+  import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? PROD_API_BASE : '');
 
 async function authHeader() {
   const { data } = await supabase.auth.getSession();
