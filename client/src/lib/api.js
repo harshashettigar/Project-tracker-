@@ -12,7 +12,7 @@ import { supabase } from './supabase.js';
 // The production default means the deployed site works even if the hosting
 // platform's env var is missing/misconfigured; the env var still overrides it.
 const PROD_API_BASE = 'https://project-tracker-production-6516.up.railway.app';
-const API_BASE =
+export const API_BASE =
   import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? PROD_API_BASE : '');
 
 async function authHeader() {
