@@ -128,6 +128,13 @@ _None queued._ v1 build order is complete. Candidate follow-ups if work continue
 
 ## Session log (newest first)
 
+- **2026-06-18** — UI polish, all merged to `main` and **pushed** (auto-deploys to
+  Vercel + Railway): project-list name is now a clickable link → View mode;
+  Objective moved inside the white summary card; task updates redesigned as
+  labeled LATEST/PREVIOUS boxes with full wrapped text; top bar shows
+  MANIPAL logo (`client/public/logo.png`, on a white chip) + "Project Tracker"
+  brand (home link) + project name; removed the "Projects (N)" list heading.
+  Verified in the local preview. Pushed `93eb86a..99a2fae`.
 - **2026-06-18** — Detail-page design fixes to match the reference mockup
   (`ProjectDetail.jsx`, `AppShell.jsx`, `TaskUpdateThread.jsx`, `styles.css`):
   (1) Objective moved inside the white summary card (divided from the facts).
