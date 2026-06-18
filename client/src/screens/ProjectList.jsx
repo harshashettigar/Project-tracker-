@@ -108,12 +108,6 @@ export default function ProjectList({ onOpen, onEdit, onAdmin }) {
         </div>
       )}
 
-      <div className="page-head">
-        <h1>
-          Projects{projects ? ` (${filtered.length})` : ''}
-        </h1>
-      </div>
-
       {loadError && (
         <p className="auth-error" role="alert">
           {loadError}
