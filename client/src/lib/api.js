@@ -4,6 +4,13 @@
 
 import { supabase } from './supabase.js';
 
+// In dev, VITE_API_BASE_URL is empty: calls use relative /api paths that Vite's
+// dev server proxies to the backend (see vite.config.js). In production the
+// frontend (Vercel) and backend (Railway) are on different origins, so
+// VITE_API_BASE_URL is set to the deployed backend URL (e.g.
+// https://your-api.up.railway.app) and is prepended to every request.
+const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
+
 async function authHeader() {
   const { data } = await supabase.auth.getSession();
   const token = data.session?.access_token;
@@ -13,7 +20,7 @@ async function authHeader() {
 async function request(method, path, body) {
   const headers = { ...(await authHeader()) };
   if (body !== undefined) headers['Content-Type'] = 'application/json';
-  const res = await fetch(path, {
+  const res = await fetch(`${API_BASE}${path}`, {
     method,
     headers,
     body: body !== undefined ? JSON.stringify(body) : undefined,
@@ -39,7 +46,7 @@ export const api = {
   uploadFile: async (projectId, file) => {
     const form = new FormData();
     form.append('file', file);
-    const res = await fetch(`/api/projects/${projectId}/files`, {
+    const res = await fetch(`${API_BASE}/api/projects/${projectId}/files`, {
       method: 'POST',
       headers: { ...(await authHeader()) },
       body: form,
