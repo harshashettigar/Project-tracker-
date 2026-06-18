@@ -128,6 +128,14 @@ _None queued._ v1 build order is complete. Candidate follow-ups if work continue
 
 ## Session log (newest first)
 
+- **2026-06-18** — Fixes, merged to `main` and **pushed** (`b8d06d9..7ab5f9a`,
+  auto-deploys): (1) Add-update composer now closes after Post update
+  (`TaskEditor.postUpdate` was missing `setComposing(false)`). (2) File viewer
+  (`FileViewerModal`) gained a Full-screen toggle (100vw/100vh, scroll locked,
+  Esc to close) and a Download button (Supabase `?download=` param so the
+  cross-origin signed URL actually saves). (3) Fixed image cropping in full
+  screen — flex `min-height:0`/`max-height:100%` so `object-fit:contain`
+  letterboxes the whole image. Verified in the preview.
 - **2026-06-18** — UI polish, all merged to `main` and **pushed** (auto-deploys to
   Vercel + Railway): project-list name is now a clickable link → View mode;
   Objective moved inside the white summary card; task updates redesigned as
