@@ -122,17 +122,14 @@ export default function ProjectDetail({ projectId, initialMode = 'view', onNavig
   }
   const taskVisible = (t) => statusAllSelected || statuses.has(t.status);
 
-  // Breadcrumb (§7.1): Projects › [parent ›] current.
+  // Breadcrumb (§7.1): the "Project Tracker" brand in the top bar is the home
+  // link, so the title is just [parent /] current project name.
   const title = useMemo(() => {
     if (!project) return null;
     return (
       <span className="breadcrumb">
-        <button type="button" className="crumb-link" onClick={() => onNavigate({ name: 'list' })}>
-          Projects
-        </button>
         {project.parent_project_id && (
           <>
-            <span className="crumb-sep">›</span>
             <button
               type="button"
               className="crumb-link"
@@ -140,9 +137,9 @@ export default function ProjectDetail({ projectId, initialMode = 'view', onNavig
             >
               {project.parent_name ?? 'Parent'}
             </button>
+            <span className="crumb-sep">/</span>
           </>
         )}
-        <span className="crumb-sep">›</span>
         <span className="crumb-current">{project.name}</span>
       </span>
     );
@@ -173,7 +170,12 @@ export default function ProjectDetail({ projectId, initialMode = 'view', onNavig
   );
 
   return (
-    <AppShell title={title} actions={project ? toggle : null} onAdmin={onAdmin}>
+    <AppShell
+      title={title}
+      actions={project ? toggle : null}
+      onAdmin={onAdmin}
+      onHome={() => onNavigate({ name: 'list' })}
+    >
       {toast && (
         <div className="toast" role="status" onAnimationEnd={() => setToast('')}>
           {toast}
@@ -194,7 +196,7 @@ export default function ProjectDetail({ projectId, initialMode = 'view', onNavig
             <SummaryEditor project={project} users={users} reload={reload} />
           ) : (
             <>
-              {/* Summary band (§10.2) */}
+              {/* Summary band (§10.2) — objective lives inside this white card. */}
               <section className="summary-band">
                 <h1 className="summary-name">{project.name}</h1>
                 <div className="summary-facts">
@@ -223,24 +225,28 @@ export default function ProjectDetail({ projectId, initialMode = 'view', onNavig
                     </span>
                   </div>
                 </div>
-              </section>
 
-              {/* Objective with More › expander (§10.2) */}
-              {project.objective && (
-                <section className="objective">
-                  <h2 className="section-title">Objective</h2>
-                  {project.objective.length > OBJECTIVE_CLAMP && !objExpanded ? (
-                    <p>
-                      {project.objective.slice(0, OBJECTIVE_CLAMP)}…{' '}
-                      <button type="button" className="link-button" onClick={() => setObjExpanded(true)}>
-                        More ›
-                      </button>
-                    </p>
-                  ) : (
-                    <p>{project.objective}</p>
-                  )}
-                </section>
-              )}
+                {/* Objective with More › expander (§10.2), divided from the facts. */}
+                {project.objective && (
+                  <div className="summary-objective">
+                    <h2 className="section-title">Objective</h2>
+                    {project.objective.length > OBJECTIVE_CLAMP && !objExpanded ? (
+                      <p>
+                        {project.objective.slice(0, OBJECTIVE_CLAMP)}…{' '}
+                        <button
+                          type="button"
+                          className="link-button"
+                          onClick={() => setObjExpanded(true)}
+                        >
+                          More ›
+                        </button>
+                      </p>
+                    ) : (
+                      <p>{project.objective}</p>
+                    )}
+                  </div>
+                )}
+              </section>
 
               {/* Detail status filter (§10.2) — View mode only */}
               <div className="status-filter detail-filter">

@@ -217,8 +217,29 @@ body {
 .topbar-title {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
+  gap: 0.55rem;
   font-weight: 600;
+  min-width: 0;
+}
+
+.topbar-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  background: none;
+  border: none;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+}
+
+button.topbar-brand {
+  cursor: pointer;
+}
+
+button.topbar-brand:hover .topbar-brand-name {
+  text-decoration: underline;
 }
 
 .topbar-mark {
@@ -231,6 +252,25 @@ body {
   justify-content: center;
   font-size: 0.8rem;
   font-weight: 700;
+}
+
+.topbar-logo {
+  height: 30px;
+  width: auto;
+  display: block;
+}
+
+.topbar-sep {
+  opacity: 0.45;
+  font-weight: 400;
+}
+
+.topbar-page {
+  font-weight: 600;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .account {
@@ -839,6 +879,17 @@ body {
   margin-bottom: 1.25rem;
 }
 
+/* Objective inside the summary white card, divided from the facts above it. */
+.summary-objective {
+  margin-top: 1.1rem;
+  padding-top: 1.1rem;
+  border-top: 1px solid var(--border);
+}
+
+.summary-objective p {
+  margin: 0;
+}
+
 .detail-filter {
   margin-bottom: 1.25rem;
 }
@@ -918,12 +969,37 @@ body {
   background: #fff8e9;
   border-left: 3px solid #e0a106;
   border-radius: 0 6px 6px 0;
-  padding: 0.5rem 0.75rem;
+  padding: 0.6rem 0.8rem;
 }
 
-.update.history {
-  border-left: 3px solid var(--border);
-  padding: 0.5rem 0.75rem;
+.update.previous {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.6rem 0.8rem;
+}
+
+.update-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.3rem;
+}
+
+.update-label {
+  display: block;
+  font-size: 0.66rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted-solid);
+  margin-bottom: 0.3rem;
+}
+
+/* In the latest box the label sits in the flex row, so drop its own margin. */
+.update-top .update-label {
+  margin-bottom: 0;
 }
 
 .update-meta {
@@ -932,7 +1008,11 @@ body {
   gap: 0.4rem;
   font-size: 0.78rem;
   color: var(--muted-solid);
-  margin-bottom: 0.2rem;
+  margin-top: 0.4rem;
+}
+
+.update-dot {
+  color: var(--muted-solid);
 }
 
 .update-author {
@@ -942,22 +1022,9 @@ body {
 
 .update-body {
   font-size: 0.88rem;
+  line-height: 1.45;
   white-space: pre-wrap;
-}
-
-.update-context {
-  display: flex;
-  align-items: baseline;
-  gap: 0.5rem;
-  font-size: 0.8rem;
-  color: var(--muted-solid);
-  padding: 0 0.75rem;
-}
-
-.update-context-body {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 }
 
 .update-empty {
