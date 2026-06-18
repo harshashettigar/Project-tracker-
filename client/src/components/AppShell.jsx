@@ -10,9 +10,18 @@ import { initials } from '../lib/format.js';
 // `title` overrides the default product title (e.g. the project-name breadcrumb
 // on detail screens, §7.1); omit it on the list/admin screens. `onAdmin`, when
 // provided to an admin, makes the account-menu "Admin" item navigate (§16.1).
-export default function AppShell({ actions = null, title = null, onAdmin = null, children }) {
+export default function AppShell({
+  actions = null,
+  title = null,
+  onAdmin = null,
+  onHome = null,
+  children,
+}) {
   const { profile, signOut } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
+  // The logo asset is dropped in at client/public/logo.png. Until it exists the
+  // <img> 404s; we fall back to the "PT" text mark so the bar never looks broken.
+  const [logoFailed, setLogoFailed] = useState(false);
   const menuRef = useRef(null);
 
   // Close the account menu on an outside click or Escape.
@@ -38,10 +47,40 @@ export default function AppShell({ actions = null, title = null, onAdmin = null,
     <div className="shell">
       <header className="topbar">
         <div className="topbar-title">
-          <span className="topbar-mark" aria-hidden="true">
-            PT
-          </span>
-          {title ?? <span>Project Tracker</span>}
+          {(() => {
+            const brand = (
+              <>
+                {logoFailed ? (
+                  <span className="topbar-mark" aria-hidden="true">
+                    PT
+                  </span>
+                ) : (
+                  <img
+                    className="topbar-logo"
+                    src="/logo.png"
+                    alt=""
+                    onError={() => setLogoFailed(true)}
+                  />
+                )}
+                <span className="topbar-brand-name">Project Tracker</span>
+              </>
+            );
+            return onHome ? (
+              <button type="button" className="topbar-brand" onClick={onHome}>
+                {brand}
+              </button>
+            ) : (
+              <span className="topbar-brand">{brand}</span>
+            );
+          })()}
+          {title && (
+            <>
+              <span className="topbar-sep" aria-hidden="true">
+                /
+              </span>
+              <span className="topbar-page">{title}</span>
+            </>
+          )}
         </div>
 
         <div className="topbar-right">
