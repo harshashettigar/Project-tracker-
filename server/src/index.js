@@ -18,7 +18,14 @@ const { serviceClient, clientForToken } = await import('./supabase.js');
 const { scanFile } = await import('./scan.js');
 
 const app = express();
-app.use(cors());
+// CORS: in production, lock access to the deployed frontend origin(s) via
+// CORS_ORIGIN (comma-separated, e.g. "https://your-app.vercel.app"). When unset
+// (local dev) allow any origin so the Vite dev server can call the API freely.
+const corsOrigins = (process.env.CORS_ORIGIN || '')
+  .split(',')
+  .map((s) => s.trim())
+  .filter(Boolean);
+app.use(cors(corsOrigins.length ? { origin: corsOrigins } : {}));
 app.use(express.json());
 
 // Pull the bearer token off the Authorization header, or null.
