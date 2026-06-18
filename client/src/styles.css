@@ -254,10 +254,15 @@ button.topbar-brand:hover .topbar-brand-name {
   font-weight: 700;
 }
 
+/* The logo is solid navy; on the navy bar it would vanish, so sit it on a
+   white rounded chip (also matches the reference). */
 .topbar-logo {
-  height: 30px;
+  height: 32px;
   width: auto;
   display: block;
+  background: #fff;
+  border-radius: 8px;
+  padding: 4px 7px;
 }
 
 .topbar-sep {
