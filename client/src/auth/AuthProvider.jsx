@@ -36,6 +36,9 @@ export function AuthProvider({ children }) {
   const loadProfile = useCallback(async (accessToken) => {
     const res = await fetch(`${API_BASE}/api/me`, {
       headers: { Authorization: `Bearer ${accessToken}` },
+      // Never cache the auth gate: a 304 revalidation would surface as a
+      // non-2xx response here and bounce the user back to login.
+      cache: 'no-store',
     });
     const body = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(body.error || 'profile load failed');

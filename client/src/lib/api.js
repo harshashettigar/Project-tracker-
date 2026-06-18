@@ -28,6 +28,9 @@ async function request(method, path, body) {
     method,
     headers,
     body: body !== undefined ? JSON.stringify(body) : undefined,
+    // Authorized, dynamic data — never serve from cache. Also avoids 304
+    // revalidations surfacing as non-2xx responses to callers.
+    cache: 'no-store',
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
