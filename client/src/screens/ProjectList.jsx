@@ -205,7 +205,16 @@ export default function ProjectList({ onOpen, onEdit, onAdmin }) {
               return (
                 <tr key={p.id}>
                   <td className="num">{String(i + 1).padStart(2, '0')}</td>
-                  <td className="project-name">{p.name}</td>
+                  <td className="project-name">
+                    <button
+                      type="button"
+                      className="project-name-link"
+                      title="Open in View mode"
+                      onClick={() => onOpen?.(p.id)}
+                    >
+                      {p.name}
+                    </button>
+                  </td>
                   <td>{formatDate(p.start_date) ?? '—'}</td>
                   <td>{formatDate(p.target_date) ?? '— Not set'}</td>
                   <td>
