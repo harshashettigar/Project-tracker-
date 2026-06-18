@@ -128,6 +128,13 @@ _None queued._ v1 build order is complete. Candidate follow-ups if work continue
 
 ## Session log (newest first)
 
+- **2026-06-18** — Made the project-list name clickable: it now renders as a
+  link-styled button firing the existing `onOpen` handler, opening the project
+  detail in View mode (the 👁 icon did this before). Client-only change
+  (`ProjectList.jsx` + `.project-name-link` in `styles.css`). Verified in the
+  local preview (logged in, clicked "AI Tools" → View detail). Merged
+  `feature/clickable-project-name` → `main`. Not yet pushed (no auto-deploy until
+  push). Blockers: none.
 - **2026-06-18** — **Deployed to production** (Vercel + Railway + Supabase; auto-deploy
   on push to `main`). Reset the DB to a single admin login. Fixed three split-origin
   bugs the dev Vite proxy had masked: configurable `API_BASE` (+ prod default), the
