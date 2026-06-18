@@ -1134,15 +1134,45 @@ button.topbar-brand:hover .topbar-brand-name {
   flex-direction: column;
 }
 
+.viewer-modal.fullscreen {
+  width: 100vw;
+  height: 100vh;
+  max-width: none;
+  border-radius: 0;
+}
+
+.modal-backdrop.fullscreen {
+  padding: 0;
+}
+
 .viewer-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 0.75rem;
   margin-bottom: 0.6rem;
 }
 
 .viewer-name {
   font-weight: 600;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.viewer-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+/* The Download link is an <a> styled as a button — keep it inline + un-underlined. */
+.viewer-actions a.ghost-button {
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
 }
 
 .viewer-frame {
