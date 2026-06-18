@@ -3,16 +3,32 @@
 > **Read this first, write it last.** It is the handoff between sessions.
 > Keep it short. Move durable facts to `CLAUDE.md`; keep only what's moving here.
 
-**Last updated:** 2026-06-17 (post-v1 fixes: stuck save buttons + editable latest update)
-**Current phase:** v1 build order complete. No phase in flight; post-v1 fixes landed.
+**Last updated:** 2026-06-18 (deployed to production: Vercel + Railway + Supabase)
+**Current phase:** v1 complete AND live in production. No phase in flight.
 
 ---
 
 ## State in one line
 
-All nine build-order phases (0–9) are done and merged to `main`. Phase 9 hardening
-applied two DB security fixes and added admin audit logging, verified against the
-hosted Supabase project. The v1 scope per the PRD is functionally complete.
+All nine build-order phases (0–9) are done and merged to `main`, and the app is now
+**live in production**: frontend on Vercel, backend on Railway, DB/Auth/Storage on
+the existing Supabase project. Both hosts auto-deploy on push to `main`.
+
+## Production (live)
+
+- **Frontend (Vercel):** https://project-tracker-2b5a.vercel.app — root dir `client`,
+  env: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (NOT the service-role key).
+- **Backend (Railway):** https://project-tracker-production-6516.up.railway.app —
+  root dir `server`, `npm start`, env: `SUPABASE_URL`, `SUPABASE_ANON_KEY`,
+  `SUPABASE_SERVICE_ROLE_KEY`, `CORS_ORIGIN` + `APP_URL` (= the Vercel URL). `PORT`
+  is injected by Railway.
+- **Supabase:** the existing project (ref `mhrwhmhsnhvujckqjdhn`) — reused as prod;
+  Auth Site URL + Redirect URLs set to the Vercel domain.
+- **Login:** single admin `harsha.s@manipalgroup.info` (DB was reset to one user).
+- **Deploy flow:** push to `main` → Vercel + Railway both rebuild automatically.
+- **Watch-outs:** Supabase free tier pauses after ~1 week idle (un-pause in dashboard);
+  Railway URL is hardcoded as `PROD_API_BASE` in `client/src/lib/api.js` (or override
+  via `VITE_API_BASE_URL`); in-app user invites need custom SMTP configured in Supabase.
 
 ## Done (Phase 9 — Hardening)
 
@@ -112,6 +128,12 @@ _None queued._ v1 build order is complete. Candidate follow-ups if work continue
 
 ## Session log (newest first)
 
+- **2026-06-18** — **Deployed to production** (Vercel + Railway + Supabase; auto-deploy
+  on push to `main`). Reset the DB to a single admin login. Fixed three split-origin
+  bugs the dev Vite proxy had masked: configurable `API_BASE` (+ prod default), the
+  `AuthProvider` raw `fetch('/api/me')` now routes through `API_BASE`, and `cache:
+  'no-store'` on API calls (a 304 was bouncing login). Locked CORS to the Vercel
+  origin. All verified inside the deployed JS bundle. Merged to `main`. Blockers: none.
 - **2026-06-17 (post-v1, perf)** — Reduced page latency on the two hot endpoints
   (server-side; client already parallelised). (1) Dropped the per-request
   `supabase.auth.getUser()` round-trip in `requireActiveUser` (~200ms each, on
