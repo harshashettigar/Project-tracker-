@@ -64,6 +64,7 @@ export default function TaskEditor({ task, targetRequired, index, count, onMove,
   async function postUpdate(body) {
     await api.postUpdate(task.id, body);
     await reload();
+    setComposing(false);
   }
 
   // Correct the latest update in place (§13, amended). Server + RLS allow this
