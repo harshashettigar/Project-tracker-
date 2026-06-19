@@ -15,6 +15,7 @@ export default function AppShell({
   title = null,
   onAdmin = null,
   onHome = null,
+  wide = false,
   children,
 }) {
   const { profile, signOut } = useAuth();
@@ -127,7 +128,7 @@ export default function AppShell({
         </div>
       </header>
 
-      <main className="shell-body">{children}</main>
+      <main className={wide ? 'shell-body wide' : 'shell-body'}>{children}</main>
     </div>
   );
 }

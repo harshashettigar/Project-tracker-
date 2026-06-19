@@ -95,13 +95,16 @@ export default function ProjectList({ onOpen, onEdit, onAdmin }) {
   }
 
   const newProjectButton = canCreate ? (
-    <button type="button" className="primary-button" onClick={() => setModalOpen(true)}>
-      + New project
+    <button type="button" className="topbar-cta" onClick={() => setModalOpen(true)}>
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+        <path d="M12 5v14M5 12h14" />
+      </svg>
+      New project
     </button>
   ) : null;
 
   return (
-    <AppShell actions={newProjectButton} onAdmin={onAdmin}>
+    <AppShell actions={newProjectButton} onAdmin={onAdmin} wide>
       {toast && (
         <div className="toast" role="status" onAnimationEnd={() => setToast('')}>
           {toast}

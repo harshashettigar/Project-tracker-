@@ -7,7 +7,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '../../lib/api.js';
 import { useAuth } from '../../auth/AuthProvider.jsx';
-import StatusChip from '../StatusChip.jsx';
+import SubProjectRow from '../SubProjectRow.jsx';
 
 export default function SubProjectsEditor({ project, subProjects, onNavigate, reload }) {
   const { profile } = useAuth();
@@ -79,8 +79,8 @@ export default function SubProjectsEditor({ project, subProjects, onNavigate, re
   }
 
   return (
-    <section className="strip">
-      <h2 className="section-title">Sub Projects</h2>
+    <section className="strip detail-card">
+      <h2 className="section-title">Sub-projects</h2>
 
       {error && (
         <p className="auth-error" role="alert">
@@ -93,27 +93,15 @@ export default function SubProjectsEditor({ project, subProjects, onNavigate, re
       ) : (
         <>
           {subProjects.length > 0 ? (
-            <ul className="subproject-strip">
+            <ul className="subproject-list">
               {subProjects.map((sp) => (
-                <li key={sp.id} className="subproject-edit-row">
-                  <button
-                    type="button"
-                    className="subproject-link"
-                    onClick={() => onNavigate({ name: 'detail', id: sp.id })}
-                  >
-                    {sp.name}
-                    <StatusChip status={sp.status} />
-                  </button>
-                  <button
-                    type="button"
-                    className="file-remove"
-                    title="Unlink"
-                    disabled={busy}
-                    onClick={() => unlink(sp)}
-                  >
-                    ✕
-                  </button>
-                </li>
+                <SubProjectRow
+                  key={sp.id}
+                  sub={sp}
+                  busy={busy}
+                  onOpen={() => onNavigate({ name: 'detail', id: sp.id })}
+                  onUnlink={() => unlink(sp)}
+                />
               ))}
             </ul>
           ) : (

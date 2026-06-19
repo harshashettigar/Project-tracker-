@@ -352,6 +352,34 @@ button.topbar-brand:hover .topbar-brand-name {
   padding: 2rem 1.25rem;
 }
 
+/* The list screen runs wider than detail/admin (reference design: list 1320px,
+   detail ~1080px). Only the list opts in via AppShell's `wide` prop. */
+.shell-body.wide {
+  max-width: 1320px;
+}
+
+/* New project button lives on the navy top bar — white-on-navy so it reads as
+   the primary CTA there (reference design). The plain .primary-button (accent
+   blue) stays for buttons that sit on white surfaces (modals, empty states). */
+.topbar-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.5rem 0.9rem;
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--navy);
+  background: #fff;
+  border: none;
+  border-radius: 7px;
+  cursor: pointer;
+}
+
+.topbar-cta:hover {
+  background: #eef2f7;
+}
+
 .topbar-right {
   display: flex;
   align-items: center;
@@ -617,8 +645,38 @@ button.topbar-brand:hover .topbar-brand-name {
   border-collapse: collapse;
   background: #fff;
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: 11px;
   overflow: hidden;
+  /* Fixed column widths mirror the reference grid template
+     (54 · 1fr · 120 · 120 · 140 · 180 · 92); the name column flexes. */
+  table-layout: fixed;
+}
+
+.project-table th:nth-child(1),
+.project-table td:nth-child(1) {
+  width: 54px;
+}
+
+.project-table th:nth-child(3),
+.project-table td:nth-child(3),
+.project-table th:nth-child(4),
+.project-table td:nth-child(4) {
+  width: 120px;
+}
+
+.project-table th:nth-child(5),
+.project-table td:nth-child(5) {
+  width: 140px;
+}
+
+.project-table th:nth-child(6),
+.project-table td:nth-child(6) {
+  width: 180px;
+}
+
+.project-table th:nth-child(7),
+.project-table td:nth-child(7) {
+  width: 92px;
 }
 
 .project-table th,
@@ -653,6 +711,7 @@ button.topbar-brand:hover .topbar-brand-name {
 
 .project-name {
   font-weight: 600;
+  overflow: hidden;
 }
 
 .project-name-link {
@@ -664,6 +723,11 @@ button.topbar-brand:hover .topbar-brand-name {
   color: var(--accent);
   text-align: left;
   cursor: pointer;
+  /* table-layout:fixed clips the cell — keep long names on one line with … */
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .project-name-link:hover {
@@ -1054,52 +1118,135 @@ button.topbar-brand:hover .topbar-brand-name {
   margin-top: 1.25rem;
 }
 
-.file-strip,
-.subproject-strip {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.6rem;
+/* Files + Sub-projects as two side-by-side cards (reference design). */
+.detail-cards-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.1rem;
+  margin-top: 1.5rem;
+  align-items: start;
 }
 
-.file-chip {
+@media (max-width: 760px) {
+  .detail-cards-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.detail-card {
+  margin-top: 0;
+  background: #fff;
+  border: 1px solid #e0e6ec;
+  border-radius: 11px;
+  padding: 1rem 1.1rem;
+  box-shadow: 0 1px 2px rgba(20, 40, 60, 0.04);
+}
+
+.detail-card .section-title {
+  margin: 0 0 0.75rem;
+}
+
+.card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.card-head .section-title {
+  margin: 0;
+}
+
+.file-list,
+.subproject-list {
+  list-style: none;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.file-row,
+.subproject-row {
   display: flex;
   align-items: center;
   gap: 0.3rem;
-  background: #fff;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 0.25rem 0.4rem 0.25rem 0.55rem;
-  font-size: 0.85rem;
+  border: 1px solid #eef1f4;
+  border-radius: 9px;
+  padding: 0.2rem 0.5rem 0.2rem 0.2rem;
 }
 
-.file-open {
+.file-row:hover,
+.subproject-row:hover {
+  border-color: #c3d2e2;
+  background: #fafcfe;
+}
+
+.file-open,
+.subproject-open {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.65rem;
+  flex: 1;
+  min-width: 0;
   background: none;
   border: none;
   font: inherit;
   cursor: pointer;
   text-align: left;
-  padding: 0.15rem;
+  padding: 0.45rem 0.5rem;
 }
 
-.file-meta {
+.file-icon,
+.subproject-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+
+.subproject-icon {
+  background: #eef2f7;
+  color: #3a6291;
+}
+
+.file-meta,
+.subproject-meta {
   display: flex;
   flex-direction: column;
-  line-height: 1.2;
+  line-height: 1.25;
+  min-width: 0;
+  flex: 1;
 }
 
-.file-name {
+.file-name,
+.subproject-name {
   font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--navy);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.file-sub {
+.file-sub,
+.subproject-owner {
   font-size: 0.72rem;
   color: var(--muted-solid);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.file-chevron {
+  color: #b3bdc7;
+  font-size: 1.1rem;
+  flex: none;
+  padding-right: 0.35rem;
 }
 
 .file-remove {
@@ -1115,14 +1262,6 @@ button.topbar-brand:hover .topbar-brand-name {
 .file-remove:hover:not(:disabled) {
   background: #fdecea;
   color: var(--error);
-}
-
-.file-attach {
-  margin-top: 0.8rem;
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  font-size: 0.85rem;
 }
 
 /* In-app viewer modal (§15.1). */
@@ -1206,29 +1345,6 @@ button.topbar-brand:hover .topbar-brand-name {
   display: inline-block;
   margin-top: 1rem;
   text-decoration: none;
-}
-
-.subproject-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  background: #fff;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 0.45rem 0.7rem;
-  font: inherit;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.subproject-link:hover {
-  background: #f7f9fc;
-}
-
-.subproject-edit-row {
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
 }
 
 .subproject-controls {

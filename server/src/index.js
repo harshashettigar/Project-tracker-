@@ -411,7 +411,7 @@ app.get('/api/projects/:id', async (req, res) => {
       .order('created_at'),
     supabase
       .from('projects')
-      .select('id, name, status')
+      .select('id, name, status, owner_user_id')
       .eq('parent_project_id', id)
       .order('name'),
     supabase.from('users').select('id, full_name'),
@@ -513,7 +513,12 @@ app.get('/api/projects/:id', async (req, res) => {
       size_bytes: f.size_bytes,
       uploaded_by_name: nameById.get(f.uploaded_by) ?? null,
     })),
-    subProjects: subs || [],
+    subProjects: (subs || []).map((s) => ({
+      id: s.id,
+      name: s.name,
+      status: s.status,
+      owner_name: nameById.get(s.owner_user_id) ?? null,
+    })),
   });
 });
 
