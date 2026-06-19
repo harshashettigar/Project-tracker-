@@ -3,8 +3,8 @@
 > **Read this first, write it last.** It is the handoff between sessions.
 > Keep it short. Move durable facts to `CLAUDE.md`; keep only what's moving here.
 
-**Last updated:** 2026-06-19 (design-alignment pass + self-hosted fonts pushed to prod)
-**Current phase:** v1 complete AND live in production. No phase in flight.
+**Last updated:** 2026-06-19 (auth default-password + change/reset password + admin table fix; two feature branches awaiting deploy)
+**Current phase:** v1 live in production. Two post-v1 branches built, not yet deployed.
 
 ---
 
@@ -86,8 +86,17 @@ _None queued._ v1 build order is complete. Candidate follow-ups if work continue
 
 ## Branch state
 
-- Active branch: `main` (`feature/self-host-fonts` merged 2026-06-19; nothing in flight).
-- Unmerged work: none.
+- `main`: `feature/self-host-fonts` merged + pushed 2026-06-19. Live in prod.
+- **`feature/project-members`** — committed, NOT merged/deployed. Members can
+  view+edit a project. Its migration is already applied to the shared Supabase.
+- **`feature/auth-and-admin-fixes`** (off `main`) — committed, NOT deployed.
+  Default-password user creation + admin reset + self-service change password;
+  fixes the admin Users/Mappings table alignment regression. No migration. The
+  existing user base has already been set to `Manipal@123` (script run in prod).
+- Both branches are independent; either can merge to `main` (auto-deploys) on its
+  own. `feature/project-members` does NOT include the admin-table alignment fix —
+  if it deploys without `feature/auth-and-admin-fixes`, the admin tables stay
+  broken; deploy the auth-fixes branch (or merge both) to fix them.
 
 ## Useful facts for next session
 
@@ -128,6 +137,20 @@ _None queued._ v1 build order is complete. Candidate follow-ups if work continue
 
 ## Session log (newest first)
 
+- **2026-06-19** — **Auth: default password + reset/change + admin table fix**
+  on branch `feature/auth-and-admin-fixes` (off `main`) — committed, NOT
+  deployed. No SMTP yet, so: new users are created with default **`Manipal@123`**
+  (no email invite); admins get a per-user **Reset password** action; users get a
+  **Change password** item in the account menu (verifies current password). The
+  **existing user base was set to `Manipal@123`** via
+  `server/scripts/reset-all-passwords.mjs` (run against prod) — this includes the
+  admin's own login. Also fixed the admin Users/Mappings **table alignment**
+  regression from the design pass (fixed column widths were on the shared
+  `.project-table`; scoped to `.project-list-table`) and made the Users identity
+  a two-line name/email cell. Verified end-to-end in preview. See decisions.md.
+  **Follow-up:** restore email invites/reset once SMTP is configured.
+- **2026-06-19** — **Project members** (post-v1 feature) on branch
+  `feature/project-members` — committed, NOT merged/deployed. (See branch state.)
 - **2026-06-19** — Design-alignment pass against the reference mockup
   (`docs/design/.../Project Tracker.dc.html`), merged to `main` and **pushed**
   (auto-deploys to Vercel + Railway). (1) **Self-hosted IBM Plex Sans** via
