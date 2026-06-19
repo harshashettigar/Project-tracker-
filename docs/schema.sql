@@ -55,6 +55,21 @@ create table projects (
 );
 -- target_date is NOT stored: derived via view project_target_dates (§12.2/§21.3).
 
+-- Project members (post-v1 extension; migration 20260619120000_project_members.sql).
+-- Beyond the single owner, listed users may VIEW and fully EDIT the project
+-- (incl. posting task updates). Members/owner/admin manage the list. See
+-- docs/decisions.md (2026-06-19). RLS: project_members readable to anyone who can
+-- see the project; writable by can_edit_project. can_edit_project()/can_see_project()
+-- and the SELECT policies on projects + child rows were broadened to include members.
+create table project_members (
+  id          uuid primary key default gen_random_uuid(),
+  project_id  uuid not null references projects (id) on delete cascade,
+  user_id     uuid not null references users (id) on delete cascade,
+  created_by  uuid references users (id) on delete set null,
+  created_at  timestamptz not null default now(),
+  constraint project_members_unique unique (project_id, user_id)
+);
+
 create table milestones (
   id          uuid primary key default gen_random_uuid(),
   project_id  uuid not null references projects (id) on delete cascade,

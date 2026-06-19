@@ -14,6 +14,7 @@ import StatusChip from '../components/StatusChip.jsx';
 import Avatar from '../components/Avatar.jsx';
 import TaskUpdateThread from '../components/TaskUpdateThread.jsx';
 import FilesSection from '../components/FilesSection.jsx';
+import MembersSection from '../components/MembersSection.jsx';
 import SubProjectRow from '../components/SubProjectRow.jsx';
 import SummaryEditor from '../components/edit/SummaryEditor.jsx';
 import SubProjectsEditor from '../components/edit/SubProjectsEditor.jsx';
@@ -91,7 +92,12 @@ export default function ProjectDetail({ projectId, initialMode = 'view', onNavig
   }, [projectId]);
 
   const project = data?.project;
-  const canEdit = project && (profile?.role === 'admin' || project.owner_user_id === profile?.id);
+  // Members can view + fully edit too (members extension), so they count toward
+  // edit capability alongside owner/admin. RLS is the real gate; this just
+  // decides what the UI offers.
+  const isMember = !!data?.members?.some((m) => m.user_id === profile?.id);
+  const canEdit =
+    project && (profile?.role === 'admin' || project.owner_user_id === profile?.id || isMember);
   const editing = mode === 'edit' && canEdit;
 
   // If a non-owner somehow lands in edit mode, fall back to view.
@@ -275,6 +281,17 @@ export default function ProjectDetail({ projectId, initialMode = 'view', onNavig
               </div>
             </>
           )}
+
+          {/* Members (members extension) — additional view+edit users beyond the
+              owner. Read-only list in View; add/remove in Edit. */}
+          <MembersSection
+            projectId={project.id}
+            ownerUserId={project.owner_user_id}
+            members={data.members || []}
+            users={users}
+            editing={editing}
+            reload={reload}
+          />
 
           {/* Milestone blocks */}
           {editing

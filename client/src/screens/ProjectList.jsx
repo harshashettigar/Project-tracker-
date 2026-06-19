@@ -198,7 +198,9 @@ export default function ProjectList({ onOpen, onEdit, onAdmin }) {
           </thead>
           <tbody>
             {filtered.map((p, i) => {
-              const canEdit = profile?.role === 'admin' || p.owner_user_id === profile?.id;
+              // can_edit comes from the server (owner/admin/member); fall back to
+              // the owner/admin check for safety if an older payload lacks it.
+              const canEdit = p.can_edit ?? (profile?.role === 'admin' || p.owner_user_id === profile?.id);
               return (
                 <tr key={p.id}>
                   <td className="num">{String(i + 1).padStart(2, '0')}</td>

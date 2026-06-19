@@ -48,6 +48,12 @@ export const api = {
   createProject: (payload) => request('POST', '/api/projects', payload).then((d) => d.project),
   listUsers: () => request('GET', '/api/users').then((d) => d.users),
 
+  // Project members (members extension): owner/admin/member can add or remove.
+  addMember: (projectId, userId) =>
+    request('POST', `/api/projects/${projectId}/members`, { user_id: userId }).then((d) => d.member),
+  removeMember: (projectId, userId) =>
+    request('DELETE', `/api/projects/${projectId}/members/${userId}`),
+
   // Files (PRD §15). Upload uses multipart/form-data — do NOT set Content-Type;
   // the browser adds the multipart boundary itself.
   uploadFile: async (projectId, file) => {

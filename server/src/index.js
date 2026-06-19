@@ -182,21 +182,30 @@ const WRONG_TYPE_MSG = 'Unsupported file type. Allowed: PDF, PNG, JPG, DOCX, XLS
 // In-memory upload so the server can validate + scan the bytes before storing.
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: MAX_FILE_BYTES } });
 
-// Can the caller edit this project? Owner or admin (PRD §18). Reads the project
-// AS THE USER, so an invisible project also yields false. RLS is the real gate;
-// this gives a clean 403 instead of a silent policy rejection.
+// Can the caller edit this project? Owner, admin, or project member (PRD §18 +
+// members extension). Reads AS THE USER, so an invisible project yields false.
+// RLS is the real gate; this gives a clean 403 instead of a silent rejection.
 async function canEditProject(supabase, profile, projectId) {
   if (profile.role === 'admin') {
     // Admin can edit any project that exists; confirm it does (RLS lets admin see all).
     const { data } = await supabase.from('projects').select('id').eq('id', projectId).maybeSingle();
     return !!data;
   }
-  const { data } = await supabase
+  const { data: project } = await supabase
     .from('projects')
     .select('owner_user_id')
     .eq('id', projectId)
     .maybeSingle();
-  return !!data && data.owner_user_id === profile.id;
+  if (project && project.owner_user_id === profile.id) return true;
+  // Member of the project? (project_members is RLS-readable to anyone who can
+  // see the project, so the caller can confirm their own membership row.)
+  const { data: member } = await supabase
+    .from('project_members')
+    .select('user_id')
+    .eq('project_id', projectId)
+    .eq('user_id', profile.id)
+    .maybeSingle();
+  return !!member;
 }
 
 // Admin gate (PRD §16/§18). Resolves an active user, then requires the admin
@@ -274,13 +283,17 @@ app.get('/api/projects', async (req, res) => {
   if (error) return res.status(500).json({ ok: false, error: error.message });
 
   const ids = projects.map((p) => p.id);
-  // Derived targets and the owner-name directory (§9.3) are independent, so they
-  // run in one parallel wave rather than back-to-back. Directory read is RLS-OK.
-  const [targetByProject, { data: users }] = await Promise.all([
+  // Derived targets, the owner-name directory (§9.3) and the caller's own
+  // memberships are independent, so they run in one parallel wave. All reads are
+  // RLS-scoped. Memberships let the list mark which rows the caller can edit.
+  const [targetByProject, { data: users }, { data: myMemberships }] = await Promise.all([
     deriveTargets(supabase, ids),
     supabase.from('users').select('id, full_name'),
+    supabase.from('project_members').select('project_id').eq('user_id', ctx.profile.id),
   ]);
   const nameById = new Map((users || []).map((u) => [u.id, u.full_name]));
+  const memberOf = new Set((myMemberships || []).map((m) => m.project_id));
+  const isAdmin = ctx.profile.role === 'admin';
 
   const rows = projects.map((p) => ({
     id: p.id,
@@ -290,6 +303,7 @@ app.get('/api/projects', async (req, res) => {
     target_date: targetByProject.get(p.id) ?? null,
     owner_user_id: p.owner_user_id,
     owner_name: nameById.get(p.owner_user_id) ?? null,
+    can_edit: isAdmin || p.owner_user_id === ctx.profile.id || memberOf.has(p.id),
   }));
   res.json({ ok: true, projects: rows });
 });
@@ -393,6 +407,7 @@ app.get('/api/projects/:id', async (req, res) => {
     { data: subs },
     { data: users },
     { data: parent },
+    { data: memberRows },
   ] = await Promise.all([
     supabase
       .from('milestones')
@@ -422,6 +437,11 @@ app.get('/api/projects/:id', async (req, res) => {
           .eq('id', project.parent_project_id)
           .maybeSingle()
       : Promise.resolve({ data: null }),
+    supabase
+      .from('project_members')
+      .select('user_id, created_at')
+      .eq('project_id', id)
+      .order('created_at'),
   ]);
 
   // Update threads depend on the task ids, so they follow the wave above.
@@ -519,7 +539,81 @@ app.get('/api/projects/:id', async (req, res) => {
       status: s.status,
       owner_name: nameById.get(s.owner_user_id) ?? null,
     })),
+    // Project members (members extension) — additional users who can view + edit.
+    members: (memberRows || []).map((m) => ({
+      user_id: m.user_id,
+      name: nameById.get(m.user_id) ?? null,
+    })),
   });
+});
+
+// --------------------------------------------------------------------------
+// Project members (members extension). A member can view + fully edit the
+// project. Owner, admin or an existing member may add/remove members — the
+// RLS write policy keys off can_edit_project, and canEditProject() mirrors it
+// for a clean 403. Adds/removes are audited like other access changes (§20.2).
+// --------------------------------------------------------------------------
+app.post('/api/projects/:id/members', async (req, res) => {
+  const ctx = await requireActiveUser(req, res);
+  if (!ctx) return;
+  const { supabase, profile } = ctx;
+  const projectId = req.params.id;
+
+  if (!(await canEditProject(supabase, profile, projectId)))
+    return res.status(403).json({ ok: false, error: 'You do not have access to edit this project.' });
+
+  const userId = req.body?.user_id;
+  if (!userId) return res.status(400).json({ ok: false, error: 'user_id is required.' });
+
+  // The user must exist and be active; the owner already has full access.
+  const { data: user } = await supabase
+    .from('users')
+    .select('id, full_name, status')
+    .eq('id', userId)
+    .maybeSingle();
+  if (!user) return res.status(400).json({ ok: false, error: 'Unknown user.' });
+  if (user.status !== 'active')
+    return res.status(400).json({ ok: false, error: 'That user is inactive.' });
+
+  const { data: project } = await supabase
+    .from('projects')
+    .select('owner_user_id')
+    .eq('id', projectId)
+    .maybeSingle();
+  if (project?.owner_user_id === userId)
+    return res.status(400).json({ ok: false, error: 'That user is already the project owner.' });
+
+  const { error } = await supabase
+    .from('project_members')
+    .insert({ project_id: projectId, user_id: userId, created_by: profile.id });
+  if (error) {
+    // 23505 = unique violation: already a member. Treat as success (idempotent).
+    if (error.code !== '23505')
+      return res.status(400).json({ ok: false, error: error.message || 'Could not add member.' });
+  }
+  await audit(profile.id, 'project_member.add', 'project', projectId, { user_id: userId });
+  res.json({ ok: true, member: { user_id: userId, name: user.full_name } });
+});
+
+app.delete('/api/projects/:id/members/:userId', async (req, res) => {
+  const ctx = await requireActiveUser(req, res);
+  if (!ctx) return;
+  const { supabase, profile } = ctx;
+  const projectId = req.params.id;
+  const userId = req.params.userId;
+
+  if (!(await canEditProject(supabase, profile, projectId)))
+    return res.status(403).json({ ok: false, error: 'You do not have access to edit this project.' });
+
+  const { error } = await supabase
+    .from('project_members')
+    .delete()
+    .eq('project_id', projectId)
+    .eq('user_id', userId);
+  if (error) return res.status(400).json({ ok: false, error: error.message || 'Could not remove member.' });
+
+  await audit(profile.id, 'project_member.remove', 'project', projectId, { user_id: userId });
+  res.json({ ok: true });
 });
 
 // ==========================================================================
