@@ -3,8 +3,8 @@
 > **Read this first, write it last.** It is the handoff between sessions.
 > Keep it short. Move durable facts to `CLAUDE.md`; keep only what's moving here.
 
-**Last updated:** 2026-06-19 (design-alignment pass + self-hosted fonts pushed to prod)
-**Current phase:** v1 complete AND live in production. No phase in flight.
+**Last updated:** 2026-06-19 (project-members feature built; awaiting deploy approval)
+**Current phase:** v1 live in production. Post-v1 feature `project-members` on a branch, not yet deployed.
 
 ---
 
@@ -86,8 +86,10 @@ _None queued._ v1 build order is complete. Candidate follow-ups if work continue
 
 ## Branch state
 
-- Active branch: `main` (`feature/self-host-fonts` merged 2026-06-19; nothing in flight).
-- Unmerged work: none.
+- Active branch: `feature/project-members` — committed, **not merged/deployed**
+  (awaiting go-ahead). Its migration is already applied to the shared Supabase.
+- `main`: `feature/self-host-fonts` merged + pushed 2026-06-19.
+- Unmerged work: `feature/project-members`.
 
 ## Useful facts for next session
 
@@ -128,6 +130,20 @@ _None queued._ v1 build order is complete. Candidate follow-ups if work continue
 
 ## Session log (newest first)
 
+- **2026-06-19** — **Project members** (post-v1 feature) on branch
+  `feature/project-members` — **committed but NOT merged/deployed** (awaiting
+  go-ahead). A project can now have members (not just one owner) who can view +
+  fully edit it (fields, milestones, tasks, files, task updates); owner/admin/
+  member manage the list. Migration `20260619120000_project_members.sql` **is
+  already applied to the (shared prod) Supabase** — additive & invisible to prod
+  until the code deploys. Server: `canEditProject()` includes membership, detail
+  returns `members`, list returns per-row `can_edit`, `POST/DELETE
+  /api/projects/:id/members`. Client: edit gate + list edit-icon honour
+  membership; new `MembersSection.jsx`. Broadens PRD §13/§17-18 — see
+  decisions.md. Verified end-to-end as admin (add/list/remove, view vs edit
+  rendering, candidate filtering, DB restored after test). **Not verified:** a
+  real non-owner member logging in (only the admin account exists in the reset
+  prod DB). **To deploy:** merge `feature/project-members` → `main` + push.
 - **2026-06-19** — Design-alignment pass against the reference mockup
   (`docs/design/.../Project Tracker.dc.html`), merged to `main` and **pushed**
   (auto-deploys to Vercel + Railway). (1) **Self-hosted IBM Plex Sans** via
