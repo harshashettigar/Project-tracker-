@@ -3,7 +3,7 @@
 > **Read this first, write it last.** It is the handoff between sessions.
 > Keep it short. Move durable facts to `CLAUDE.md`; keep only what's moving here.
 
-**Last updated:** 2026-06-18 (deployed to production: Vercel + Railway + Supabase)
+**Last updated:** 2026-06-19 (design-alignment pass + self-hosted fonts pushed to prod)
 **Current phase:** v1 complete AND live in production. No phase in flight.
 
 ---
@@ -86,7 +86,7 @@ _None queued._ v1 build order is complete. Candidate follow-ups if work continue
 
 ## Branch state
 
-- Active branch: `main` (Phase 9 merged; nothing in flight).
+- Active branch: `main` (`feature/self-host-fonts` merged 2026-06-19; nothing in flight).
 - Unmerged work: none.
 
 ## Useful facts for next session
@@ -128,6 +128,22 @@ _None queued._ v1 build order is complete. Candidate follow-ups if work continue
 
 ## Session log (newest first)
 
+- **2026-06-19** — Design-alignment pass against the reference mockup
+  (`docs/design/.../Project Tracker.dc.html`), merged to `main` and **pushed**
+  (auto-deploys to Vercel + Railway). (1) **Self-hosted IBM Plex Sans** via
+  `@fontsource/ibm-plex-sans` (latin 400/500/600/700) imported in `main.jsx` —
+  no runtime CDN; the app previously only *named* the font in CSS and fell back
+  to Segoe UI on machines without it. (2) **Files + Sub-projects** now render as
+  two side-by-side cards (`.detail-cards-grid`): file rows with coloured
+  type-icon squares + `TYPE · size · by`; sub-project rows with folder icon,
+  owner sub-line and status chip via a shared `SubProjectRow.jsx`. Server
+  (`/api/projects/:id`) now returns `owner_name` for sub-projects. (3) **List
+  screen** widened to 1320px (new `wide` prop on `AppShell`; detail/admin stay
+  1100px) and the project table uses fixed columns `54/1fr/120/120/140/180/92`
+  matching the reference grid. (4) **New project** button restyled white-on-navy
+  with an SVG plus (`.topbar-cta`), scoped to the top bar. Verified end-to-end in
+  the local preview while logged in (incl. a link/unlink round-trip to confirm
+  the sub-project owner row, then restored). Branch `feature/self-host-fonts`.
 - **2026-06-18** — Fixes, merged to `main` and **pushed** (`b8d06d9..7ab5f9a`,
   auto-deploys): (1) Add-update composer now closes after Post update
   (`TaskEditor.postUpdate` was missing `setComposing(false)`). (2) File viewer
