@@ -3,8 +3,8 @@
 > **Read this first, write it last.** It is the handoff between sessions.
 > Keep it short. Move durable facts to `CLAUDE.md`; keep only what's moving here.
 
-**Last updated:** 2026-06-19 (project-members + auth/password + admin-table fix merged onto this branch; awaiting deploy)
-**Current phase:** v1 live in production. Post-v1 work (members + auth/password) integrated on `feature/project-members`, not yet deployed.
+**Last updated:** 2026-06-19 (members + auth/password + admin-table fix deployed to prod)
+**Current phase:** v1 + post-v1 (members, default-password auth, password reset/change) live in production. No phase in flight.
 
 ---
 
@@ -86,15 +86,12 @@ _None queued._ v1 build order is complete. Candidate follow-ups if work continue
 
 ## Branch state
 
-- `main`: `feature/self-host-fonts` merged + pushed 2026-06-19. Live in prod.
-- **`feature/project-members`** (integration branch) — committed, NOT
-  merged/deployed. Now contains BOTH the members feature AND the auth/password +
-  admin-table-fix work (`feature/auth-and-admin-fixes` merged into it). Merge this
-  one branch → `main` to ship everything.
-- `feature/auth-and-admin-fixes` (off `main`) — folded into `feature/project-members`.
+- `main`: **everything merged + pushed 2026-06-19** (members + auth/password +
+  admin-table fix + Members-section-at-bottom). Live in prod (Vercel + Railway
+  auto-deploy on push). Nothing in flight.
+- `feature/project-members` + `feature/auth-and-admin-fixes`: merged to `main`; done.
 - Already applied to the shared (prod) Supabase: the `project_members` migration
-  and the bulk password reset (all users → `Manipal@123`, email-confirmed). Both
-  are invisible to prod users until the code deploys.
+  and the bulk password reset (all users → `Manipal@123`, email-confirmed).
 
 ## Useful facts for next session
 
