@@ -73,8 +73,9 @@ export const api = {
 
   // Admin — user management (PRD §16).
   adminListUsers: () => request('GET', '/api/admin/users').then((d) => d.users),
-  adminCreateUser: (payload) => request('POST', '/api/admin/users', payload).then((d) => d.user),
+  adminCreateUser: (payload) => request('POST', '/api/admin/users', payload),
   adminUpdateUser: (id, patch) => request('PATCH', `/api/admin/users/${id}`, patch),
+  adminResetPassword: (id) => request('POST', `/api/admin/users/${id}/reset-password`),
   adminGetMappings: () => request('GET', '/api/admin/mappings'),
   adminAddMapping: (viewer_user_id, owner_user_id) =>
     request('POST', '/api/admin/mappings', { viewer_user_id, owner_user_id }),

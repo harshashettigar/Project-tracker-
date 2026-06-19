@@ -130,6 +130,25 @@ export function AuthProvider({ children }) {
     [],
   );
 
+  // Self-service change password (account menu). Verify the current password by
+  // re-authenticating (Supabase updateUser doesn't check the old one), then set
+  // the new one. Re-auth refreshes the same user's session — no sign-out.
+  const changePassword = useCallback(
+    async (currentPassword, newPassword) => {
+      const email = profile?.email || session?.user?.email;
+      if (!email) return { ok: false, error: 'no-session' };
+      const { error: reauthErr } = await supabase.auth.signInWithPassword({
+        email,
+        password: currentPassword,
+      });
+      if (reauthErr) return { ok: false, error: 'bad-current' };
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) return { ok: false, error: error.message };
+      return { ok: true };
+    },
+    [profile, session],
+  );
+
   const value = {
     session,
     profile,
@@ -139,6 +158,7 @@ export function AuthProvider({ children }) {
     signOut,
     sendReset,
     updatePassword,
+    changePassword,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

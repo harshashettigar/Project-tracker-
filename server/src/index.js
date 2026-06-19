@@ -224,6 +224,13 @@ const USER_ROLES = new Set(['admin', 'manager', 'member', 'viewer']);
 const USER_STATUSES = new Set(['active', 'inactive']);
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+// Default password for new accounts and admin password resets. Email-based
+// invite/reset is not wired up yet (no SMTP), so the admin creates users with a
+// shared default they communicate out-of-band; users change it via the account
+// menu. NOT secure long-term — replace with email invites once SMTP is set up
+// (see docs/decisions.md 2026-06-19). Overridable via env for a future rotation.
+const DEFAULT_USER_PASSWORD = process.env.DEFAULT_USER_PASSWORD || 'Manipal@123';
+
 // Audit trail (PRD §20.2): record access/membership/mapping changes with actor +
 // timestamp. audit_log has no user-facing INSERT policy, so writes go via the
 // service role. Best-effort — an audit write must never fail the user's action.
@@ -1098,30 +1105,61 @@ app.post('/api/admin/users', async (req, res) => {
   if (existing)
     return res.status(409).json({ ok: false, error: 'Another user already uses this email.' });
 
-  const redirectTo = `${process.env.APP_URL || 'http://localhost:5173'}/#type=invite`;
-  const { data: invited, error: inviteErr } = await serviceClient.auth.admin.inviteUserByEmail(
+  // Create the auth identity with the shared default password (no SMTP yet, so
+  // no email invite). email_confirm:true lets them sign in immediately; they
+  // change the password from the account menu. See docs/decisions.md.
+  const { data: created, error: authErr } = await serviceClient.auth.admin.createUser({
     email,
-    { data: { full_name }, redirectTo },
-  );
-  if (inviteErr || !invited?.user)
+    password: DEFAULT_USER_PASSWORD,
+    email_confirm: true,
+    user_metadata: { full_name },
+  });
+  if (authErr || !created?.user)
     return res
       .status(400)
-      .json({ ok: false, error: inviteErr?.message || 'Could not send the invite.' });
+      .json({ ok: false, error: authErr?.message || 'Could not create the account.' });
 
   const { data, error } = await serviceClient
     .from('users')
-    .insert({ id: invited.user.id, full_name, email, role, status, invited_at: new Date().toISOString() })
+    .insert({ id: created.user.id, full_name, email, role, status, invited_at: new Date().toISOString() })
     .select('id, full_name, email, role, status')
     .single();
   if (error) {
     // Roll back the auth identity so a retry isn't blocked by a half-created user.
-    await serviceClient.auth.admin.deleteUser(invited.user.id);
+    await serviceClient.auth.admin.deleteUser(created.user.id);
     if (error.code === '23505')
       return res.status(409).json({ ok: false, error: 'Another user already uses this email.' });
     return res.status(400).json({ ok: false, error: error.message });
   }
   await audit(ctx.profile.id, 'user.create', 'user', data.id, { email, role, status });
-  res.status(201).json({ ok: true, user: data });
+  // Hand the default password back so the admin can pass it on to the new user.
+  res.status(201).json({ ok: true, user: data, default_password: DEFAULT_USER_PASSWORD });
+});
+
+// Admin password reset (no SMTP yet): set a user's password back to the shared
+// default so they can sign in again, then change it themselves. Admin-only;
+// audited. Uses the service role (admin auth API bypasses RLS by design).
+app.post('/api/admin/users/:id/reset-password', async (req, res) => {
+  const ctx = await requireAdmin(req, res);
+  if (!ctx) return;
+  if (!serviceClient) return res.status(503).json({ ok: false, error: 'admin API not configured' });
+  const { id } = req.params;
+
+  // Confirm the target is a real app user (clean 404 instead of a raw auth error).
+  const { data: target } = await serviceClient.from('users').select('id').eq('id', id).maybeSingle();
+  if (!target) return res.status(404).json({ ok: false, error: 'Unknown user.' });
+
+  // Also confirm the email: accounts created via the old invite flow stay
+  // unconfirmed (no SMTP, so the invite was never accepted) and can't sign in
+  // even with a valid password. Confirming here makes the reset actually usable.
+  const { error } = await serviceClient.auth.admin.updateUserById(id, {
+    password: DEFAULT_USER_PASSWORD,
+    email_confirm: true,
+  });
+  if (error) return res.status(400).json({ ok: false, error: error.message || 'Could not reset password.' });
+
+  await audit(ctx.profile.id, 'user.reset_password', 'user', id, null);
+  res.json({ ok: true, default_password: DEFAULT_USER_PASSWORD });
 });
 
 // Edit a user (§16.3) and deactivate/reactivate (§16.4). Email is the identity

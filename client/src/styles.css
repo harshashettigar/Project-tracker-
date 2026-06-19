@@ -706,35 +706,40 @@ button.topbar-brand:hover .topbar-brand-name {
   border: 1px solid var(--border);
   border-radius: 11px;
   overflow: hidden;
-  /* Fixed column widths mirror the reference grid template
-     (54 · 1fr · 120 · 120 · 140 · 180 · 92); the name column flexes. */
+}
+
+/* Fixed column widths are specific to the PROJECT LIST (mirror the reference
+   grid 54 · 1fr · 120 · 120 · 140 · 180 · 92; the name column flexes). They must
+   NOT apply to the admin tables, which share .project-table but have different
+   columns — auto layout there sizes Name/Email/etc. to content. */
+.project-list-table {
   table-layout: fixed;
 }
 
-.project-table th:nth-child(1),
-.project-table td:nth-child(1) {
+.project-list-table th:nth-child(1),
+.project-list-table td:nth-child(1) {
   width: 54px;
 }
 
-.project-table th:nth-child(3),
-.project-table td:nth-child(3),
-.project-table th:nth-child(4),
-.project-table td:nth-child(4) {
+.project-list-table th:nth-child(3),
+.project-list-table td:nth-child(3),
+.project-list-table th:nth-child(4),
+.project-list-table td:nth-child(4) {
   width: 120px;
 }
 
-.project-table th:nth-child(5),
-.project-table td:nth-child(5) {
+.project-list-table th:nth-child(5),
+.project-list-table td:nth-child(5) {
   width: 140px;
 }
 
-.project-table th:nth-child(6),
-.project-table td:nth-child(6) {
+.project-list-table th:nth-child(6),
+.project-list-table td:nth-child(6) {
   width: 180px;
 }
 
-.project-table th:nth-child(7),
-.project-table td:nth-child(7) {
+.project-list-table th:nth-child(7),
+.project-list-table td:nth-child(7) {
   width: 92px;
 }
 
@@ -760,6 +765,31 @@ button.topbar-brand:hover .topbar-brand-name {
 
 .project-table tbody tr:hover {
   background: #f7f9fc;
+}
+
+/* Admin Users: identity as a two-line cell (name over email) beside the avatar. */
+.user-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 0;
+}
+
+.user-id-lines {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+  min-width: 0;
+}
+
+.user-name {
+  font-weight: 600;
+  color: var(--navy);
+}
+
+.user-email {
+  font-size: 0.8rem;
+  color: var(--muted-solid);
 }
 
 .project-table .num {

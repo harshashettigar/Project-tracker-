@@ -96,7 +96,10 @@ export default function AdminUserModal({ user, onClose, onSubmit }) {
           </label>
 
           {!editing && (
-            <p className="muted invite-note">An invite to set a password will be sent to this email.</p>
+            <p className="muted invite-note">
+              The user is created with the default password <strong>Manipal@123</strong>. Share it
+              with them — they can change it from the account menu after signing in.
+            </p>
           )}
 
           <div className="modal-actions">
@@ -104,7 +107,7 @@ export default function AdminUserModal({ user, onClose, onSubmit }) {
               Cancel
             </button>
             <button type="submit" className="primary-button" disabled={busy}>
-              {busy ? 'Saving…' : editing ? 'Save changes' : 'Send invite'}
+              {busy ? 'Saving…' : editing ? 'Save changes' : 'Create user'}
             </button>
           </div>
         </form>

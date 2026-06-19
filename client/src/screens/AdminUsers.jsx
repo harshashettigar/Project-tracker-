@@ -66,14 +66,24 @@ export default function AdminUsers({ onNavigate }) {
   }
 
   async function createUser(payload) {
-    await api.adminCreateUser(payload);
+    const res = await api.adminCreateUser(payload);
     await load();
-    setToast('Invite sent.');
+    setToast(`User created. Default password: ${res?.default_password || 'Manipal@123'}`);
   }
   async function editUser(payload) {
     await api.adminUpdateUser(modal.user.id, payload);
     await load();
     setToast('User updated.');
+  }
+  async function resetPassword(u) {
+    if (!window.confirm(`Reset ${u.full_name}'s password to the default? They'll use it to sign in, then change it.`))
+      return;
+    try {
+      const res = await api.adminResetPassword(u.id);
+      setToast(`Password reset. Default password: ${res?.default_password || 'Manipal@123'}`);
+    } catch (e) {
+      setToast(e.message || 'Could not reset password.');
+    }
   }
   async function setStatusFor(u, status) {
     if (status === 'inactive' && !window.confirm(`Deactivate ${u.full_name}?`)) return;
@@ -178,11 +188,10 @@ export default function AdminUsers({ onNavigate }) {
           </button>
         </div>
       ) : (
-        <table className="project-table">
+        <table className="project-table users-table">
           <thead>
             <tr>
               <th>Name</th>
-              <th>Email</th>
               <th>Role</th>
               <th>Status</th>
               <th>Mapped</th>
@@ -195,12 +204,14 @@ export default function AdminUsers({ onNavigate }) {
               return (
                 <tr key={u.id}>
                   <td>
-                    <span className="owner-cell">
+                    <span className="user-cell">
                       <Avatar name={u.full_name} />
-                      {u.full_name}
+                      <span className="user-id-lines">
+                        <span className="user-name">{u.full_name}</span>
+                        <span className="user-email">{u.email}</span>
+                      </span>
                     </span>
                   </td>
-                  <td>{u.email}</td>
                   <td>
                     <RoleChip role={u.role} />
                   </td>
@@ -227,6 +238,14 @@ export default function AdminUsers({ onNavigate }) {
                       onClick={() => setModal({ mode: 'edit', user: u })}
                     >
                       Edit
+                    </button>
+                    <button
+                      type="button"
+                      className="link-button"
+                      title="Reset this user's password to the default"
+                      onClick={() => resetPassword(u)}
+                    >
+                      Reset password
                     </button>
                     {u.status === 'active' ? (
                       <button

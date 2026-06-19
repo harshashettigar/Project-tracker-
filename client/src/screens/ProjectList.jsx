@@ -184,7 +184,7 @@ export default function ProjectList({ onOpen, onEdit, onAdmin }) {
           </button>
         </div>
       ) : (
-        <table className="project-table">
+        <table className="project-table project-list-table">
           <thead>
             <tr>
               <th className="num">Sl</th>
