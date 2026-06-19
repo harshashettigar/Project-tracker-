@@ -6,6 +6,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../auth/AuthProvider.jsx';
 import { initials } from '../lib/format.js';
+import ChangePasswordModal from './ChangePasswordModal.jsx';
 
 // `title` overrides the default product title (e.g. the project-name breadcrumb
 // on detail screens, §7.1); omit it on the list/admin screens. `onAdmin`, when
@@ -20,6 +21,8 @@ export default function AppShell({
 }) {
   const { profile, signOut } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [pwModal, setPwModal] = useState(false);
+  const [pwToast, setPwToast] = useState('');
   // The logo asset is dropped in at client/public/logo.png. Until it exists the
   // <img> 404s; we fall back to the "PT" text mark so the bar never looks broken.
   const [logoFailed, setLogoFailed] = useState(false);
@@ -119,6 +122,17 @@ export default function AppShell({
                     Admin
                   </button>
                 )}
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="menu-item"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    setPwModal(true);
+                  }}
+                >
+                  Change password
+                </button>
                 <button type="button" role="menuitem" className="menu-item" onClick={signOut}>
                   Sign out
                 </button>
@@ -128,7 +142,20 @@ export default function AppShell({
         </div>
       </header>
 
+      {pwToast && (
+        <div className="toast" role="status" onAnimationEnd={() => setPwToast('')}>
+          {pwToast}
+        </div>
+      )}
+
       <main className={wide ? 'shell-body wide' : 'shell-body'}>{children}</main>
+
+      {pwModal && (
+        <ChangePasswordModal
+          onClose={() => setPwModal(false)}
+          onDone={() => setPwToast('Password changed.')}
+        />
+      )}
     </div>
   );
 }
