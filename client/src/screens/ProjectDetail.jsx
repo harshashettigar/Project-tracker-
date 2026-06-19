@@ -282,17 +282,6 @@ export default function ProjectDetail({ projectId, initialMode = 'view', onNavig
             </>
           )}
 
-          {/* Members (members extension) — additional view+edit users beyond the
-              owner. Read-only list in View; add/remove in Edit. */}
-          <MembersSection
-            projectId={project.id}
-            ownerUserId={project.owner_user_id}
-            members={data.members || []}
-            users={users}
-            editing={editing}
-            reload={reload}
-          />
-
           {/* Milestone blocks */}
           {editing
             ? data.milestones.map((m, i) => (
@@ -403,6 +392,18 @@ export default function ProjectDetail({ projectId, initialMode = 'view', onNavig
               )
             )}
           </div>
+
+          {/* Members (members extension) — additional view+edit users beyond the
+              owner. Kept at the bottom so status/tasks sit higher on the page.
+              Read-only list in View; add/remove in Edit. */}
+          <MembersSection
+            projectId={project.id}
+            ownerUserId={project.owner_user_id}
+            members={data.members || []}
+            users={users}
+            editing={editing}
+            reload={reload}
+          />
         </>
       )}
     </AppShell>
