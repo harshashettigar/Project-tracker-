@@ -31,8 +31,12 @@ async function main() {
   console.log(`Resetting ${users.length} users to the default password on ${url}`);
   let ok = 0;
   for (const u of users) {
+    // email_confirm:true also fixes accounts created via the old invite flow
+    // that were never confirmed (no SMTP) — otherwise login fails despite a
+    // valid password with "Email not confirmed".
     const { error: upErr } = await admin.auth.admin.updateUserById(u.id, {
       password: DEFAULT_PASSWORD,
+      email_confirm: true,
     });
     if (upErr) {
       console.error(`  FAILED ${u.email}: ${upErr.message}`);

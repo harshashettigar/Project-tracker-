@@ -1055,8 +1055,12 @@ app.post('/api/admin/users/:id/reset-password', async (req, res) => {
   const { data: target } = await serviceClient.from('users').select('id').eq('id', id).maybeSingle();
   if (!target) return res.status(404).json({ ok: false, error: 'Unknown user.' });
 
+  // Also confirm the email: accounts created via the old invite flow stay
+  // unconfirmed (no SMTP, so the invite was never accepted) and can't sign in
+  // even with a valid password. Confirming here makes the reset actually usable.
   const { error } = await serviceClient.auth.admin.updateUserById(id, {
     password: DEFAULT_USER_PASSWORD,
+    email_confirm: true,
   });
   if (error) return res.status(400).json({ ok: false, error: error.message || 'Could not reset password.' });
 
