@@ -16,6 +16,8 @@ create type entity_status as enum ('draft', 'in_progress', 'on_hold', 'completed
 create type user_role     as enum ('admin', 'manager', 'member', 'viewer');
 create type user_status   as enum ('active', 'inactive');
 create type file_type     as enum ('pdf', 'png', 'jpg', 'docx', 'xlsx');
+-- Task priority (post-v1; migration 20260620090000_task_priority.sql). Default 'mid'.
+create type task_priority as enum ('low', 'mid', 'high');
 
 -- ==========================================================================
 -- Tables (§21.1)
@@ -89,6 +91,7 @@ create table tasks (
   start_date   date,
   target_date  date,
   status       entity_status not null default 'draft',
+  priority     task_priority not null default 'mid',     -- post-v1 (Low/Mid/High)
   sort_order   integer not null default 0,
   created_at   timestamptz not null default now(),
   updated_at   timestamptz not null default now(),

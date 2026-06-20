@@ -11,6 +11,7 @@ import { api } from '../lib/api.js';
 import { formatDate, STATUSES } from '../lib/format.js';
 import AppShell from '../components/AppShell.jsx';
 import StatusChip from '../components/StatusChip.jsx';
+import PriorityChip from '../components/PriorityChip.jsx';
 import Avatar from '../components/Avatar.jsx';
 import TaskUpdateThread from '../components/TaskUpdateThread.jsx';
 import FilesSection from '../components/FilesSection.jsx';
@@ -34,6 +35,7 @@ function ReadTaskTable({ tasks }) {
           <th>Start</th>
           <th>Target</th>
           <th>Status</th>
+          <th>Priority</th>
         </tr>
       </thead>
       <tbody>
@@ -46,9 +48,12 @@ function ReadTaskTable({ tasks }) {
               <td>
                 <StatusChip status={t.status} />
               </td>
+              <td>
+                <PriorityChip priority={t.priority || 'mid'} />
+              </td>
             </tr>
             <tr className="update-row">
-              <td colSpan={4}>
+              <td colSpan={5}>
                 <TaskUpdateThread updates={t.updates} />
               </td>
             </tr>

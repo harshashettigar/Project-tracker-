@@ -4,7 +4,7 @@
 // on save.
 
 import { useState } from 'react';
-import { STATUSES } from '../../lib/format.js';
+import { STATUSES, PRIORITIES } from '../../lib/format.js';
 
 export default function AddTaskForm({ targetRequired, onAdd }) {
   const [open, setOpen] = useState(false);
@@ -12,6 +12,7 @@ export default function AddTaskForm({ targetRequired, onAdd }) {
   const [startDate, setStartDate] = useState('');
   const [targetDate, setTargetDate] = useState('');
   const [status, setStatus] = useState('draft');
+  const [priority, setPriority] = useState('mid');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -20,6 +21,7 @@ export default function AddTaskForm({ targetRequired, onAdd }) {
     setStartDate('');
     setTargetDate('');
     setStatus('draft');
+    setPriority('mid');
     setError('');
   }
 
@@ -35,6 +37,7 @@ export default function AddTaskForm({ targetRequired, onAdd }) {
         start_date: startDate || null,
         target_date: targetDate || null,
         status,
+        priority,
       });
       reset();
       setOpen(false);
@@ -81,6 +84,16 @@ export default function AddTaskForm({ targetRequired, onAdd }) {
             {STATUSES.map((s) => (
               <option key={s.value} value={s.value}>
                 {s.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="field">
+          <span className="field-label">Priority</span>
+          <select value={priority} disabled={busy} onChange={(e) => setPriority(e.target.value)}>
+            {PRIORITIES.map((p) => (
+              <option key={p.value} value={p.value}>
+                {p.label}
               </option>
             ))}
           </select>

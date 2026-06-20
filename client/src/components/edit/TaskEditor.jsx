@@ -5,7 +5,7 @@
 
 import { useState } from 'react';
 import { api } from '../../lib/api.js';
-import { STATUSES } from '../../lib/format.js';
+import { STATUSES, PRIORITIES } from '../../lib/format.js';
 import TaskUpdateThread from '../TaskUpdateThread.jsx';
 import UpdateComposer from './UpdateComposer.jsx';
 
@@ -14,6 +14,7 @@ export default function TaskEditor({ task, targetRequired, index, count, onMove,
   const [startDate, setStartDate] = useState(task.start_date || '');
   const [targetDate, setTargetDate] = useState(task.target_date || '');
   const [status, setStatus] = useState(task.status);
+  const [priority, setPriority] = useState(task.priority || 'mid');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [composing, setComposing] = useState(false);
@@ -25,7 +26,8 @@ export default function TaskEditor({ task, targetRequired, index, count, onMove,
     name !== task.name ||
     (startDate || '') !== (task.start_date || '') ||
     (targetDate || '') !== (task.target_date || '') ||
-    status !== task.status;
+    status !== task.status ||
+    priority !== (task.priority || 'mid');
 
   async function save() {
     if (!name.trim()) return setError('Task name is required.');
@@ -39,6 +41,7 @@ export default function TaskEditor({ task, targetRequired, index, count, onMove,
         start_date: startDate || null,
         target_date: targetDate || null,
         status,
+        priority,
       });
       await reload();
     } catch (e) {
@@ -111,6 +114,16 @@ export default function TaskEditor({ task, targetRequired, index, count, onMove,
             {STATUSES.map((s) => (
               <option key={s.value} value={s.value}>
                 {s.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="field">
+          <span className="field-label">Priority</span>
+          <select value={priority} disabled={busy} onChange={(e) => setPriority(e.target.value)}>
+            {PRIORITIES.map((p) => (
+              <option key={p.value} value={p.value}>
+                {p.label}
               </option>
             ))}
           </select>

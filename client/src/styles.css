@@ -524,6 +524,12 @@ button.topbar-brand:hover .topbar-brand-name {
 .status-completed   { color: #2e7d4f; background: #e3f5ea; }
 .status-at_risk     { color: #c0392b; background: #fdecea; }
 
+/* Task priority chips (post-v1) — Low calm green · Mid neutral slate-blue ·
+   High red. The label always disambiguates (colour is never the sole cue). */
+.priority-low  { color: #3a7d44; background: #e8f6ec; }
+.priority-mid  { color: #46586b; background: #eaeef3; }
+.priority-high { color: #c0392b; background: #fdecea; }
+
 /* Role chips (§7.3) — a family distinct from status, so the two never confuse.
    Admin violet · Manager blue · Member grey · Viewer slate. */
 .role-admin   { color: #6b3fa0; background: #efe6fa; }

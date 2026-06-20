@@ -136,6 +136,9 @@ app.get('/api/users', async (req, res) => {
 // Canonical entity status set (PRD §7.2). Any write naming a status is checked.
 const STATUS_VALUES = new Set(['draft', 'in_progress', 'on_hold', 'completed', 'at_risk']);
 
+// Task priority (post-v1 extension). 'mid' is the default ("normal") priority.
+const PRIORITY_VALUES = new Set(['low', 'mid', 'high']);
+
 // File attachments (PRD §15). Private bucket; the API serves signed URLs.
 const ATTACHMENTS_BUCKET = process.env.ATTACHMENTS_BUCKET || 'attachments';
 const MAX_FILE_BYTES = 25 * 1024 * 1024; // ~25 MB cap (§15.2)
@@ -423,7 +426,7 @@ app.get('/api/projects/:id', async (req, res) => {
       .order('sort_order'),
     supabase
       .from('tasks')
-      .select('id, milestone_id, name, start_date, target_date, status, sort_order')
+      .select('id, milestone_id, name, start_date, target_date, status, priority, sort_order')
       .eq('project_id', id)
       .order('sort_order'),
     supabase
@@ -484,6 +487,7 @@ app.get('/api/projects/:id', async (req, res) => {
     start_date: t.start_date,
     target_date: t.target_date,
     status: t.status,
+    priority: t.priority,
     updates: updatesByTask.get(t.id) || [],
   });
 
@@ -784,6 +788,8 @@ app.post('/api/projects/:id/tasks', async (req, res) => {
       .status(400)
       .json({ ok: false, error: 'Target date is required for project-level tasks.' });
   const status = req.body.status && STATUS_VALUES.has(req.body.status) ? req.body.status : 'draft';
+  const priority =
+    req.body.priority && PRIORITY_VALUES.has(req.body.priority) ? req.body.priority : 'mid';
 
   const { data, error } = await supabase
     .from('tasks')
@@ -794,6 +800,7 @@ app.post('/api/projects/:id/tasks', async (req, res) => {
       start_date: req.body?.start_date || null,
       target_date,
       status,
+      priority,
     })
     .select('id')
     .single();
@@ -831,6 +838,11 @@ app.patch('/api/tasks/:id', async (req, res) => {
     if (!STATUS_VALUES.has(req.body.status))
       return res.status(400).json({ ok: false, error: 'Invalid status.' });
     patch.status = req.body.status;
+  }
+  if ('priority' in req.body) {
+    if (!PRIORITY_VALUES.has(req.body.priority))
+      return res.status(400).json({ ok: false, error: 'Invalid priority.' });
+    patch.priority = req.body.priority;
   }
   if ('sort_order' in req.body) patch.sort_order = req.body.sort_order;
   if (Object.keys(patch).length === 0)

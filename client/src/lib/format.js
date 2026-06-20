@@ -42,3 +42,16 @@ const STATUS_LABEL = Object.fromEntries(STATUSES.map((s) => [s.value, s.label]))
 export function statusLabel(value) {
   return STATUS_LABEL[value] ?? value;
 }
+
+// Task priority (post-v1 extension). 'mid' is the default ("normal") priority.
+export const PRIORITIES = [
+  { value: 'low', label: 'Low' },
+  { value: 'mid', label: 'Mid' },
+  { value: 'high', label: 'High' },
+];
+
+const PRIORITY_LABEL = Object.fromEntries(PRIORITIES.map((p) => [p.value, p.label]));
+
+export function priorityLabel(value) {
+  return PRIORITY_LABEL[value] ?? value;
+}
