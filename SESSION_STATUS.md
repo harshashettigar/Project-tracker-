@@ -3,8 +3,8 @@
 > **Read this first, write it last.** It is the handoff between sessions.
 > Keep it short. Move durable facts to `CLAUDE.md`; keep only what's moving here.
 
-**Last updated:** 2026-06-19 (members + auth/password + admin-table fix deployed to prod)
-**Current phase:** v1 + post-v1 (members, default-password auth, password reset/change) live in production. No phase in flight.
+**Last updated:** 2026-06-20 (task priority Low/Mid/High deployed to prod)
+**Current phase:** v1 + post-v1 (members, default-password auth, password reset/change, task priority) live in production. No phase in flight.
 
 ---
 
@@ -86,12 +86,17 @@ _None queued._ v1 build order is complete. Candidate follow-ups if work continue
 
 ## Branch state
 
-- `main`: **everything merged + pushed 2026-06-19** (members + auth/password +
-  admin-table fix + Members-section-at-bottom). Live in prod (Vercel + Railway
-  auto-deploy on push). Nothing in flight.
-- `feature/project-members` + `feature/auth-and-admin-fixes`: merged to `main`; done.
-- Already applied to the shared (prod) Supabase: the `project_members` migration
-  and the bulk password reset (all users → `Manipal@123`, email-confirmed).
+- `main`: **everything merged + pushed 2026-06-20** — members, auth/password,
+  admin-table fix, and **task priority (Low/Mid/High)**. Live in prod (Vercel +
+  Railway auto-deploy on push). Nothing in flight.
+- Merged & done: `feature/project-members`, `feature/auth-and-admin-fixes`,
+  `feature/task-priority`.
+- Already applied to the shared (prod) Supabase: the `project_members` migration,
+  the bulk password reset (all users → `Manipal@123`, email-confirmed), and the
+  `task_priority` migration (tasks.priority, default 'mid').
+- **NEXT (queued, not started):** split `.env.development` / `.env.production`
+  onto a SEPARATE dev Supabase project so dev/testing stops hitting the live DB;
+  document the two-project workflow in `CLAUDE.md` + README. (Agreed 2026-06-20.)
 
 ## Useful facts for next session
 
@@ -132,6 +137,17 @@ _None queued._ v1 build order is complete. Candidate follow-ups if work continue
 
 ## Session log (newest first)
 
+- **2026-06-20** — **Task priority (Low/Mid/High)**, merged to `main` and
+  **pushed** (auto-deploys). Each task gains a `priority` (default `mid` =
+  "normal"); existing tasks defaulted to `mid` by the migration. Migration
+  `20260620090000_task_priority.sql` (task_priority enum + tasks.priority)
+  applied to the shared Supabase. Server: detail returns `priority`,
+  add/update task accept+validate it. Client: `PRIORITIES` vocab + `PriorityChip`
+  (Low green / Mid slate / High red); priority select in AddTaskForm + TaskEditor;
+  Priority column in the View task table. Backend round-trip verified
+  (create high → read → update low → delete). Branch `feature/task-priority`.
+  NOTE: the priority migration was applied directly to the LIVE/shared Supabase
+  (single DB for dev+prod) — reinforces the queued `.env` split below.
 - **2026-06-19** — **Auth: default password + reset/change + admin table fix**
   (now integrated on `feature/project-members`; NOT deployed). No SMTP yet, so:
   new users are created with default **`Manipal@123`** (no email invite); admins
