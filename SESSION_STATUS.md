@@ -3,8 +3,8 @@
 > **Read this first, write it last.** It is the handoff between sessions.
 > Keep it short. Move durable facts to `CLAUDE.md`; keep only what's moving here.
 
-**Last updated:** 2026-06-20 (dev/prod env split + dedicated dev Supabase project)
-**Current phase:** v1 + post-v1 (members, default-password auth, password reset/change, task priority) live in production; dev now runs on a separate Supabase project. No phase in flight.
+**Last updated:** 2026-06-21 (login redesign + optional milestone/task descriptions)
+**Current phase:** v1 + post-v1 (members, default-password auth, password reset/change, task priority) live in production; dev runs on a separate Supabase project. Two new changes merged to `main` locally but **NOT pushed/deployed** (see Branch state): a login-screen redesign and optional milestone/task descriptions. No phase in flight.
 
 ---
 
@@ -86,11 +86,14 @@ _None queued._ v1 build order is complete. Candidate follow-ups if work continue
 
 ## Branch state
 
-- `main`: **everything merged + pushed 2026-06-20** — members, auth/password,
-  admin-table fix, task priority, and the **dev/prod env split**. Live in prod
-  (Vercel + Railway auto-deploy on push). Nothing in flight.
+- `main`: pushed state is 2026-06-20 (members, auth/password, admin-table fix,
+  task priority, dev/prod env split — live in prod). **Two newer changes are
+  merged to `main` locally but NOT pushed:** the login redesign and the
+  milestone/task descriptions. `git push` will auto-deploy both — but apply the
+  descriptions migration to **prod** with `--prod` first (see Session log
+  2026-06-21). Nothing in flight.
 - Merged & done: `feature/project-members`, `feature/auth-and-admin-fixes`,
-  `feature/task-priority`, `feature/env-split`.
+  `feature/task-priority`, `feature/env-split`, `feature/entity-descriptions`.
 - **Two Supabase projects now (see CLAUDE.md "Two environments"):**
   - **dev** `jtgwywgamgkazmzotspf` — `.env.development`; fully bootstrapped
     2026-06-20 (8 migrations + setup:auth + setup:storage + seed). Local
@@ -141,6 +144,28 @@ _None queued._ v1 build order is complete. Candidate follow-ups if work continue
 
 ## Session log (newest first)
 
+- **2026-06-21** — Two changes, merged to `main` **locally but NOT pushed** (no
+  prod deploy yet; prod DB migration also pending — see below). (1) **Login screen
+  redesign** to match the reference mockup (`docs/design/.../Project Tracker.dc.html`):
+  navy gradient header band with the MSC logo (`/logo.png`, "PT" text fallback) +
+  "Project Tracker"/"Manipal Specialty Chemicals", subtitle, error box with icon,
+  uppercase field labels + placeholders, eye-icon password toggle, right-aligned
+  Forgot password, full-width button with spinner. PRD §8.3 logic + verbatim
+  messages unchanged; dropped the mockup's demo-password hint line.
+  (`client/src/screens/Login.jsx` + `styles.css`). (2) **Optional descriptions on
+  milestones + tasks**: nullable `description` (migration
+  `20260621090000_entity_descriptions.sql`, DB CHECK ≤2000 chars), **applied to DEV
+  only**. Shown only when present via an "i" `InfoPopover` (hover + click/tap +
+  keyboard focus, Esc/outside-click to close) next to the name. Optional textarea
+  in the milestone/task add forms + editors; empty → NULL so it can be cleared.
+  Server returns it in the detail tree and validates on POST/PATCH; additive, no
+  RLS change. Verified end-to-end in the dev preview (add → icon + popover with
+  preserved line breaks; clear → icon gone; no console errors). Branches
+  `feature/entity-descriptions` (+ login committed on `main`). **TO DEPLOY:** apply
+  the migration to **prod** (`cd server && node scripts/run-sql-api.mjs --prod
+  ../supabase/migrations/20260621090000_entity_descriptions.sql`) FIRST, then
+  `git push` (Vercel + Railway auto-deploy). Expand-first: the additive column is
+  safe to apply before the code ships.
 - **2026-06-20** — **Dev/prod env split**, merged to `main` and **pushed**
   (auto-deploys; prod hosts keep using their dashboard env, so no runtime change).
   `server/src/env.js` is now the single mode-aware loader: defaults to
