@@ -4,7 +4,7 @@
 > Keep it short. Move durable facts to `CLAUDE.md`; keep only what's moving here.
 
 **Last updated:** 2026-06-21 (perceived-performance pass: SWR cache + skeletons + prefetch)
-**Current phase:** v1 + post-v1 live in production; dev runs on a separate Supabase project. Login redesign + milestone/task descriptions are **pushed + deployed**. A client-only **perceived-performance pass** is merged to `main` locally but **NOT pushed yet** (see Branch state / Session log). No phase in flight.
+**Current phase:** v1 + post-v1 live in production; dev runs on a separate Supabase project. All of today's work is **pushed + deployed**: login redesign, milestone/task descriptions, the perceived-performance pass, and the dropdown-chevron polish. No phase in flight.
 
 ---
 
@@ -86,10 +86,10 @@ _None queued._ v1 build order is complete. Candidate follow-ups if work continue
 
 ## Branch state
 
-- `main`: pushed state (2026-06-21) is through login redesign + milestone/task
-  descriptions (live in prod). The **perceived-performance pass is merged to `main`
-  locally but NOT pushed** — it's client-only (no DB/backend change), so `git push`
-  alone deploys it (Vercel rebuild). Nothing in flight.
+- `main`: **everything merged + pushed 2026-06-21** — login redesign, milestone/
+  task descriptions (prod DB migration applied), the perceived-performance pass,
+  and the dropdown-chevron polish. Live in prod (Vercel + Railway auto-deploy on
+  push). Nothing in flight.
 - Merged & done: `feature/project-members`, `feature/auth-and-admin-fixes`,
   `feature/task-priority`, `feature/env-split`, `feature/entity-descriptions`,
   `feature/perceived-perf`.
@@ -143,8 +143,13 @@ _None queued._ v1 build order is complete. Candidate follow-ups if work continue
 
 ## Session log (newest first)
 
-- **2026-06-21** — **Perceived-performance pass** (client-only), merged to `main`,
-  **NOT pushed yet** (no DB/backend change — `git push` deploys it). Goal: make
+- **2026-06-21** — **Dropdown chevron polish** (client-only), pushed + deployed.
+  Native select arrows sat flush to the right edge; replaced with a custom SVG
+  chevron inset 0.7rem with reserved `padding-right`, applied to all styled
+  selects (filter, modal, edit grid, add forms, member/sub-project pickers).
+  Commit `1d537f4` (`styles.css`). Verified in preview.
+- **2026-06-21** — **Perceived-performance pass** (client-only), merged to `main`
+  and **pushed + deployed** (no DB/backend change — Vercel rebuild). Goal: make
   navigation feel instant instead of blanking to "Loading…" for 2–3s on every
   page switch. (1) **Stale-while-revalidate cache** — new `client/src/lib/cache.js`
   (in-memory store keyed e.g. `projects`, `users`, `project:<id>`; de-dupes
