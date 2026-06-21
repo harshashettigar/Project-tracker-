@@ -3,13 +3,16 @@
 // search/owner/status filtering over that visible set (§9.5), the create-project
 // modal (§9.4), and the empty / empty-results states (§19.2).
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useAuth } from '../auth/AuthProvider.jsx';
 import { api } from '../lib/api.js';
+import { useCachedQuery } from '../lib/useCachedQuery.js';
+import { prefetch, invalidate } from '../lib/cache.js';
 import { formatDate, STATUSES } from '../lib/format.js';
 import AppShell from '../components/AppShell.jsx';
 import StatusChip from '../components/StatusChip.jsx';
 import Avatar from '../components/Avatar.jsx';
+import { ListSkeleton } from '../components/Skeleton.jsx';
 import NewProjectModal from '../components/NewProjectModal.jsx';
 
 const ALL_OWNERS = '__all__';
@@ -18,9 +21,13 @@ export default function ProjectList({ onOpen, onEdit, onAdmin }) {
   const { profile } = useAuth();
   const canCreate = profile?.role !== 'viewer'; // PRD §18
 
-  const [projects, setProjects] = useState(null); // null = loading
-  const [users, setUsers] = useState([]);
-  const [loadError, setLoadError] = useState('');
+  // Stale-while-revalidate: a revisit renders the cached list instantly and
+  // refreshes in the background; only a cold first load shows the skeleton.
+  const { data: projects, loading, error: loadError, reload } = useCachedQuery(
+    'projects',
+    api.listProjects,
+  );
+  const { data: users } = useCachedQuery('users', api.listUsers);
 
   // Filters (§9.5). Status starts with all selected (= no status filter).
   const [search, setSearch] = useState('');
@@ -29,22 +36,6 @@ export default function ProjectList({ onOpen, onEdit, onAdmin }) {
 
   const [modalOpen, setModalOpen] = useState(false);
   const [toast, setToast] = useState('');
-
-  async function load() {
-    setLoadError('');
-    try {
-      const [p, u] = await Promise.all([api.listProjects(), api.listUsers()]);
-      setProjects(p);
-      setUsers(u);
-    } catch (err) {
-      setLoadError(err.message || 'Could not load projects.');
-      setProjects([]);
-    }
-  }
-
-  useEffect(() => {
-    load();
-  }, []);
 
   // Owner dropdown options are the owners actually present in the visible list.
   const ownerOptions = useMemo(() => {
@@ -87,10 +78,11 @@ export default function ProjectList({ onOpen, onEdit, onAdmin }) {
 
   async function handleCreate(payload) {
     const project = await api.createProject(payload);
+    invalidate('projects'); // list cache is now stale — drop it so it refetches
     // PRD §9.4: a new project opens immediately in Edit mode so the owner can
     // begin adding milestones and tasks.
     if (onEdit) onEdit(project.id);
-    else await load();
+    else await reload();
     return project;
   }
 
@@ -158,8 +150,8 @@ export default function ProjectList({ onOpen, onEdit, onAdmin }) {
       )}
 
       {/* States */}
-      {projects === null ? (
-        <p className="muted">Loading…</p>
+      {loading ? (
+        <ListSkeleton />
       ) : projects.length === 0 ? (
         // First-run empty state (§19.2).
         <div className="empty-state">
@@ -201,8 +193,10 @@ export default function ProjectList({ onOpen, onEdit, onAdmin }) {
               // can_edit comes from the server (owner/admin/member); fall back to
               // the owner/admin check for safety if an older payload lacks it.
               const canEdit = p.can_edit ?? (profile?.role === 'admin' || p.owner_user_id === profile?.id);
+              // Warm the detail cache on hover/focus so the click feels instant.
+              const warm = () => prefetch(`project:${p.id}`, () => api.getProject(p.id));
               return (
-                <tr key={p.id}>
+                <tr key={p.id} onMouseEnter={warm} onFocus={warm}>
                   <td className="num">{String(i + 1).padStart(2, '0')}</td>
                   <td className="project-name">
                     <button
@@ -255,7 +249,7 @@ export default function ProjectList({ onOpen, onEdit, onAdmin }) {
       {modalOpen && (
         <NewProjectModal
           profile={profile}
-          users={users}
+          users={users || []}
           onClose={() => setModalOpen(false)}
           onCreated={handleCreate}
         />

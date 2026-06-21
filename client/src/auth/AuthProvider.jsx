@@ -13,6 +13,7 @@
 import { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { supabase } from '../lib/supabase.js';
 import { API_BASE } from '../lib/api.js';
+import { clearCache } from '../lib/cache.js';
 
 const AuthContext = createContext(null);
 
@@ -106,6 +107,7 @@ export function AuthProvider({ children }) {
 
   const signOut = useCallback(async () => {
     await supabase.auth.signOut();
+    clearCache(); // never let the next user see this user's cached data
     setProfile(null);
   }, []);
 

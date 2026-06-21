@@ -3,8 +3,8 @@
 > **Read this first, write it last.** It is the handoff between sessions.
 > Keep it short. Move durable facts to `CLAUDE.md`; keep only what's moving here.
 
-**Last updated:** 2026-06-21 (login redesign + optional milestone/task descriptions)
-**Current phase:** v1 + post-v1 live in production; dev runs on a separate Supabase project. Latest additions **pushed + deployed 2026-06-21**: a login-screen redesign and optional milestone/task descriptions (prod DB migration applied). No phase in flight.
+**Last updated:** 2026-06-21 (perceived-performance pass: SWR cache + skeletons + prefetch)
+**Current phase:** v1 + post-v1 live in production; dev runs on a separate Supabase project. Login redesign + milestone/task descriptions are **pushed + deployed**. A client-only **perceived-performance pass** is merged to `main` locally but **NOT pushed yet** (see Branch state / Session log). No phase in flight.
 
 ---
 
@@ -86,11 +86,13 @@ _None queued._ v1 build order is complete. Candidate follow-ups if work continue
 
 ## Branch state
 
-- `main`: **everything merged + pushed 2026-06-21** — through the login redesign
-  and milestone/task descriptions (prod DB migration applied). Live in prod
-  (Vercel + Railway auto-deploy on push). Nothing in flight.
+- `main`: pushed state (2026-06-21) is through login redesign + milestone/task
+  descriptions (live in prod). The **perceived-performance pass is merged to `main`
+  locally but NOT pushed** — it's client-only (no DB/backend change), so `git push`
+  alone deploys it (Vercel rebuild). Nothing in flight.
 - Merged & done: `feature/project-members`, `feature/auth-and-admin-fixes`,
-  `feature/task-priority`, `feature/env-split`, `feature/entity-descriptions`.
+  `feature/task-priority`, `feature/env-split`, `feature/entity-descriptions`,
+  `feature/perceived-perf`.
 - **Two Supabase projects now (see CLAUDE.md "Two environments"):**
   - **dev** `jtgwywgamgkazmzotspf` — `.env.development`; fully bootstrapped
     2026-06-20 (8 migrations + setup:auth + setup:storage + seed). Local
@@ -141,6 +143,27 @@ _None queued._ v1 build order is complete. Candidate follow-ups if work continue
 
 ## Session log (newest first)
 
+- **2026-06-21** — **Perceived-performance pass** (client-only), merged to `main`,
+  **NOT pushed yet** (no DB/backend change — `git push` deploys it). Goal: make
+  navigation feel instant instead of blanking to "Loading…" for 2–3s on every
+  page switch. (1) **Stale-while-revalidate cache** — new `client/src/lib/cache.js`
+  (in-memory store keyed e.g. `projects`, `users`, `project:<id>`; de-dupes
+  concurrent fetches) + `useCachedQuery` hook (`client/src/lib/useCachedQuery.js`):
+  a revisit renders cached data immediately, then refreshes in the background; only
+  a cold key shows a loader. `reload()` force-revalidates (editors call it after
+  mutations). Cleared on sign-out (`AuthProvider.signOut` → `clearCache()`).
+  (2) **No-blank** — `ProjectList`/`ProjectDetail` no longer null-out data on
+  navigation; stale content stays on screen during revalidation. (3) **Hover/focus
+  prefetch** — list rows call `prefetch('project:<id>', …)` on mouseenter/focus so
+  the click is usually warm. (4) **Skeletons** — `client/src/components/Skeleton.jsx`
+  (list-table + detail shapes, shimmer CSS, respects `prefers-reduced-motion`)
+  replace the "Loading…" text on cold loads only. Verified in dev preview: cold
+  load → skeleton (caught at 2 frames); cached revisit → instant, no skeleton, no
+  blank; list cached/instant; save→reload round-trip still works (status change
+  persisted + reverted, no errors). Branch `feature/perceived-perf`. NOTE: this is
+  perceived speed only — the real cold-start latency (Railway/Supabase free tier
+  sleeping) is unaddressed; a keep-warm ping or paid tier is the actual fix
+  (offered, not done).
 - **2026-06-21** — Two changes, merged to `main` and **pushed + deployed** (prod
   DB migration applied with `--prod` first, then `git push` → Vercel + Railway
   auto-deploy; commits `61728f1..d7aad4e`). (1) **Login screen
