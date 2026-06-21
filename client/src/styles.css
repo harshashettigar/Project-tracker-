@@ -1711,6 +1711,27 @@ button.topbar-brand:hover .topbar-brand-name {
   background: #fff;
 }
 
+/* Custom dropdown chevron. The native arrow sits flush against the right edge,
+   which looks cramped; replace it with our own SVG inset from the edge so there's
+   breathing room, and reserve padding-right so long option text never overlaps it.
+   Placed after the per-context select rules so it wins on the cascade. */
+.filter-row select,
+.modal select,
+.edit-grid select,
+.add-form select,
+.member-add select,
+.subproject-link-existing select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-color: #fff;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23617082' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.7rem center;
+  background-size: 12px;
+  padding-right: 2rem;
+}
+
 /* A field that spans the whole edit grid (e.g. the optional description box). */
 .edit-grid .field-full {
   grid-column: 1 / -1;
