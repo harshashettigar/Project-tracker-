@@ -136,6 +136,18 @@ const STATUS_VALUES = new Set(['draft', 'in_progress', 'on_hold', 'completed', '
 // Task priority (post-v1 extension). 'mid' is the default ("normal") priority.
 const PRIORITY_VALUES = new Set(['low', 'mid', 'high']);
 
+// Optional milestone/task description (post-v1). Trim; empty → null (lets the UI
+// clear it). Cap at 2000 chars to mirror the DB CHECK; returns { error } if over.
+const DESCRIPTION_MAX = 2000;
+function parseDescription(raw) {
+  if (raw == null) return { value: null };
+  const value = String(raw).trim();
+  if (value.length === 0) return { value: null };
+  if (value.length > DESCRIPTION_MAX)
+    return { error: `Description must be ${DESCRIPTION_MAX} characters or fewer.` };
+  return { value };
+}
+
 // File attachments (PRD §15). Private bucket; the API serves signed URLs.
 const ATTACHMENTS_BUCKET = process.env.ATTACHMENTS_BUCKET || 'attachments';
 const MAX_FILE_BYTES = 25 * 1024 * 1024; // ~25 MB cap (§15.2)
@@ -418,12 +430,12 @@ app.get('/api/projects/:id', async (req, res) => {
   ] = await Promise.all([
     supabase
       .from('milestones')
-      .select('id, name, target_date, status, sort_order')
+      .select('id, name, description, target_date, status, sort_order')
       .eq('project_id', id)
       .order('sort_order'),
     supabase
       .from('tasks')
-      .select('id, milestone_id, name, start_date, target_date, status, priority, sort_order')
+      .select('id, milestone_id, name, description, start_date, target_date, status, priority, sort_order')
       .eq('project_id', id)
       .order('sort_order'),
     supabase
@@ -481,6 +493,7 @@ app.get('/api/projects/:id', async (req, res) => {
   const shapeTask = (t) => ({
     id: t.id,
     name: t.name,
+    description: t.description ?? null,
     start_date: t.start_date,
     target_date: t.target_date,
     status: t.status,
@@ -529,6 +542,7 @@ app.get('/api/projects/:id', async (req, res) => {
     milestones: (milestones || []).map((m) => ({
       id: m.id,
       name: m.name,
+      description: m.description ?? null,
       target_date: m.target_date,
       status: m.status,
       tasks: tasksByMilestone.get(m.id) || [],
@@ -693,10 +707,12 @@ app.post('/api/projects/:id/milestones', async (req, res) => {
   if (!req.body?.target_date)
     return res.status(400).json({ ok: false, error: 'Milestone target date is required.' });
   const status = req.body.status && STATUS_VALUES.has(req.body.status) ? req.body.status : 'draft';
+  const desc = parseDescription(req.body?.description);
+  if (desc.error) return res.status(400).json({ ok: false, error: desc.error });
 
   const { data, error } = await supabase
     .from('milestones')
-    .insert({ project_id: id, name, target_date: req.body.target_date, status })
+    .insert({ project_id: id, name, description: desc.value, target_date: req.body.target_date, status })
     .select('id')
     .single();
   if (error) return res.status(400).json({ ok: false, error: error.message });
@@ -725,6 +741,11 @@ app.patch('/api/milestones/:id', async (req, res) => {
     const name = (req.body.name || '').trim();
     if (!name) return res.status(400).json({ ok: false, error: 'Milestone name is required.' });
     patch.name = name;
+  }
+  if ('description' in req.body) {
+    const desc = parseDescription(req.body.description);
+    if (desc.error) return res.status(400).json({ ok: false, error: desc.error });
+    patch.description = desc.value;
   }
   if ('target_date' in req.body) {
     if (!req.body.target_date)
@@ -787,6 +808,8 @@ app.post('/api/projects/:id/tasks', async (req, res) => {
   const status = req.body.status && STATUS_VALUES.has(req.body.status) ? req.body.status : 'draft';
   const priority =
     req.body.priority && PRIORITY_VALUES.has(req.body.priority) ? req.body.priority : 'mid';
+  const desc = parseDescription(req.body?.description);
+  if (desc.error) return res.status(400).json({ ok: false, error: desc.error });
 
   const { data, error } = await supabase
     .from('tasks')
@@ -794,6 +817,7 @@ app.post('/api/projects/:id/tasks', async (req, res) => {
       project_id: id,
       milestone_id,
       name,
+      description: desc.value,
       start_date: req.body?.start_date || null,
       target_date,
       status,
@@ -827,6 +851,11 @@ app.patch('/api/tasks/:id', async (req, res) => {
     const name = (req.body.name || '').trim();
     if (!name) return res.status(400).json({ ok: false, error: 'Task name is required.' });
     patch.name = name;
+  }
+  if ('description' in req.body) {
+    const desc = parseDescription(req.body.description);
+    if (desc.error) return res.status(400).json({ ok: false, error: desc.error });
+    patch.description = desc.value;
   }
   if ('start_date' in req.body) patch.start_date = req.body.start_date || null;
   if ('target_date' in req.body) patch.target_date = req.body.target_date || null;

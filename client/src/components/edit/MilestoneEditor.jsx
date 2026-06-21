@@ -11,6 +11,7 @@ import AddTaskForm from './AddTaskForm.jsx';
 
 export default function MilestoneEditor({ projectId, milestone, index, count, onMove, onMoveTask, reload }) {
   const [name, setName] = useState(milestone.name);
+  const [description, setDescription] = useState(milestone.description || '');
   const [targetDate, setTargetDate] = useState(milestone.target_date || '');
   const [status, setStatus] = useState(milestone.status);
   const [error, setError] = useState('');
@@ -18,6 +19,7 @@ export default function MilestoneEditor({ projectId, milestone, index, count, on
 
   const dirty =
     name !== milestone.name ||
+    (description || '') !== (milestone.description || '') ||
     (targetDate || '') !== (milestone.target_date || '') ||
     status !== milestone.status;
 
@@ -27,7 +29,12 @@ export default function MilestoneEditor({ projectId, milestone, index, count, on
     setBusy(true);
     setError('');
     try {
-      await api.updateMilestone(milestone.id, { name: name.trim(), target_date: targetDate, status });
+      await api.updateMilestone(milestone.id, {
+        name: name.trim(),
+        description: description.trim() || null,
+        target_date: targetDate,
+        status,
+      });
       await reload();
     } catch (e) {
       setError(e.message || 'Could not save.');
@@ -80,6 +87,18 @@ export default function MilestoneEditor({ projectId, milestone, index, count, on
                 </option>
               ))}
             </select>
+          </label>
+          <label className="field field-full">
+            <span className="field-label">Description (optional)</span>
+            <textarea
+              className="field-textarea"
+              rows={2}
+              maxLength={2000}
+              value={description}
+              disabled={busy}
+              placeholder="Extra context, shown behind an info icon next to the name."
+              onChange={(e) => setDescription(e.target.value)}
+            />
           </label>
         </div>
         <div className="edit-row-actions">

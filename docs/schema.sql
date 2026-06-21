@@ -76,6 +76,8 @@ create table milestones (
   id          uuid primary key default gen_random_uuid(),
   project_id  uuid not null references projects (id) on delete cascade,
   name        text not null,
+  description text                                   -- optional (post-v1); shown via "i" popover
+    constraint milestones_description_len check (char_length(description) <= 2000),
   target_date date not null,                         -- required (§12.1)
   status      entity_status not null default 'draft',
   sort_order  integer not null default 0,
@@ -88,6 +90,8 @@ create table tasks (
   project_id   uuid not null references projects (id) on delete cascade,
   milestone_id uuid references milestones (id) on delete cascade,  -- NULL = project-level
   name         text not null,
+  description  text                                  -- optional (post-v1); shown via "i" popover
+    constraint tasks_description_len check (char_length(description) <= 2000),
   start_date   date,
   target_date  date,
   status       entity_status not null default 'draft',

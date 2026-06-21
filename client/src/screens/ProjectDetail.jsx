@@ -17,6 +17,7 @@ import TaskUpdateThread from '../components/TaskUpdateThread.jsx';
 import FilesSection from '../components/FilesSection.jsx';
 import MembersSection from '../components/MembersSection.jsx';
 import SubProjectRow from '../components/SubProjectRow.jsx';
+import InfoPopover from '../components/InfoPopover.jsx';
 import SummaryEditor from '../components/edit/SummaryEditor.jsx';
 import SubProjectsEditor from '../components/edit/SubProjectsEditor.jsx';
 import MilestoneEditor from '../components/edit/MilestoneEditor.jsx';
@@ -42,7 +43,12 @@ function ReadTaskTable({ tasks }) {
         {tasks.map((t) => (
           <Fragment key={t.id}>
             <tr>
-              <td className="task-name">{t.name}</td>
+              <td className="task-name">
+                <span className="name-with-info">
+                  {t.name}
+                  <InfoPopover text={t.description} label="task description" />
+                </span>
+              </td>
               <td>{formatDate(t.start_date) ?? '—'}</td>
               <td>{formatDate(t.target_date) ?? '—'}</td>
               <td>
@@ -308,7 +314,10 @@ export default function ProjectDetail({ projectId, initialMode = 'view', onNavig
                   return (
                     <section className="milestone-block" key={m.id}>
                       <header className="milestone-header">
-                        <h3 className="milestone-name">{m.name}</h3>
+                        <h3 className="milestone-name name-with-info">
+                          {m.name}
+                          <InfoPopover text={m.description} label="milestone description" />
+                        </h3>
                         <span className="milestone-target">Target {formatDate(m.target_date)}</span>
                         <StatusChip status={m.status} />
                       </header>

@@ -9,6 +9,7 @@ import { STATUSES, PRIORITIES } from '../../lib/format.js';
 export default function AddTaskForm({ targetRequired, onAdd }) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
   const [startDate, setStartDate] = useState('');
   const [targetDate, setTargetDate] = useState('');
   const [status, setStatus] = useState('draft');
@@ -18,6 +19,7 @@ export default function AddTaskForm({ targetRequired, onAdd }) {
 
   function reset() {
     setName('');
+    setDescription('');
     setStartDate('');
     setTargetDate('');
     setStatus('draft');
@@ -34,6 +36,7 @@ export default function AddTaskForm({ targetRequired, onAdd }) {
     try {
       await onAdd({
         name: name.trim(),
+        description: description.trim() || null,
         start_date: startDate || null,
         target_date: targetDate || null,
         status,
@@ -97,6 +100,18 @@ export default function AddTaskForm({ targetRequired, onAdd }) {
               </option>
             ))}
           </select>
+        </label>
+        <label className="field field-full">
+          <span className="field-label">Description (optional)</span>
+          <textarea
+            className="field-textarea"
+            rows={2}
+            maxLength={2000}
+            value={description}
+            disabled={busy}
+            placeholder="Extra context, shown behind an info icon next to the name."
+            onChange={(e) => setDescription(e.target.value)}
+          />
         </label>
       </div>
       <div className="composer-actions">

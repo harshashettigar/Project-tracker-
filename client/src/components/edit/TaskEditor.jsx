@@ -11,6 +11,7 @@ import UpdateComposer from './UpdateComposer.jsx';
 
 export default function TaskEditor({ task, targetRequired, index, count, onMove, reload }) {
   const [name, setName] = useState(task.name);
+  const [description, setDescription] = useState(task.description || '');
   const [startDate, setStartDate] = useState(task.start_date || '');
   const [targetDate, setTargetDate] = useState(task.target_date || '');
   const [status, setStatus] = useState(task.status);
@@ -24,6 +25,7 @@ export default function TaskEditor({ task, targetRequired, index, count, onMove,
 
   const dirty =
     name !== task.name ||
+    (description || '') !== (task.description || '') ||
     (startDate || '') !== (task.start_date || '') ||
     (targetDate || '') !== (task.target_date || '') ||
     status !== task.status ||
@@ -38,6 +40,7 @@ export default function TaskEditor({ task, targetRequired, index, count, onMove,
     try {
       await api.updateTask(task.id, {
         name: name.trim(),
+        description: description.trim() || null,
         start_date: startDate || null,
         target_date: targetDate || null,
         status,
@@ -127,6 +130,18 @@ export default function TaskEditor({ task, targetRequired, index, count, onMove,
               </option>
             ))}
           </select>
+        </label>
+        <label className="field field-full">
+          <span className="field-label">Description (optional)</span>
+          <textarea
+            className="field-textarea"
+            rows={2}
+            maxLength={2000}
+            value={description}
+            disabled={busy}
+            placeholder="Extra context, shown behind an info icon next to the name."
+            onChange={(e) => setDescription(e.target.value)}
+          />
         </label>
       </div>
 
