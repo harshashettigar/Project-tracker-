@@ -5,10 +5,12 @@
 // derived and read-only (§12.2). Capability is enforced server/DB-side; the mode
 // only decides what to render.
 
-import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../auth/AuthProvider.jsx';
 import { api } from '../lib/api.js';
+import { useCachedQuery } from '../lib/useCachedQuery.js';
 import { formatDate, STATUSES } from '../lib/format.js';
+import { DetailSkeleton } from '../components/Skeleton.jsx';
 import AppShell from '../components/AppShell.jsx';
 import StatusChip from '../components/StatusChip.jsx';
 import PriorityChip from '../components/PriorityChip.jsx';
@@ -72,35 +74,19 @@ function ReadTaskTable({ tasks }) {
 
 export default function ProjectDetail({ projectId, initialMode = 'view', onNavigate, onAdmin }) {
   const { profile } = useAuth();
-  const [data, setData] = useState(null); // null = loading
-  const [users, setUsers] = useState([]);
-  const [loadError, setLoadError] = useState('');
+  // Stale-while-revalidate: a prefetched/previously-seen project renders instantly
+  // (no blank), then refreshes in the background. `reload` forces a fresh fetch and
+  // is what the editors call after a mutation. Cold loads show the skeleton.
+  const { data, loading, error: loadError, reload } = useCachedQuery(
+    `project:${projectId}`,
+    () => api.getProject(projectId),
+  );
+  const { data: usersData } = useCachedQuery('users', api.listUsers);
+  const users = usersData || [];
   const [mode, setMode] = useState(initialMode);
   const [objExpanded, setObjExpanded] = useState(false);
   const [statuses, setStatuses] = useState(() => new Set(STATUSES.map((s) => s.value)));
   const [toast, setToast] = useState('');
-
-  const reload = useCallback(async () => {
-    const d = await api.getProject(projectId);
-    setData(d);
-    return d;
-  }, [projectId]);
-
-  useEffect(() => {
-    let active = true;
-    setData(null);
-    setLoadError('');
-    Promise.all([api.getProject(projectId), api.listUsers().catch(() => [])])
-      .then(([d, u]) => {
-        if (!active) return;
-        setData(d);
-        setUsers(u);
-      })
-      .catch((e) => active && setLoadError(e.message || 'Could not load the project.'));
-    return () => {
-      active = false;
-    };
-  }, [projectId]);
 
   const project = data?.project;
   // Members can view + fully edit too (members extension), so they count toward
@@ -206,7 +192,7 @@ export default function ProjectDetail({ projectId, initialMode = 'view', onNavig
         </p>
       )}
 
-      {data === null && !loadError && <p className="muted">Loading…</p>}
+      {loading && !loadError && <DetailSkeleton />}
 
       {project && (
         <>
