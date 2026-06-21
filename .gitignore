@@ -1,5 +1,9 @@
 node_modules/
+# Env files — never commit real secrets. .env.example IS committed (template).
 .env
+.env.development
+.env.production
+.env.*.local
 dist/
 *.log
 .vite/

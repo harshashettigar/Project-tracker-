@@ -9,13 +9,8 @@
 //
 // Idempotent: re-running leaves an existing bucket as-is.
 
-import { fileURLToPath } from 'node:url';
-import { dirname, resolve } from 'node:path';
-import dotenv from 'dotenv';
+import '../src/env.js'; // mode-aware env load (+ banner). Pass --prod to target prod.
 import { createClient } from '@supabase/supabase-js';
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
-dotenv.config({ path: resolve(__dirname, '../../.env') });
 
 const url = process.env.SUPABASE_URL;
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;

@@ -6,12 +6,7 @@
 // label cannot contain '@', so a greedy password capture up to the last '@'
 // before the host is unambiguous. The secret is never logged.
 
-import { fileURLToPath } from 'node:url';
-import { dirname, resolve } from 'node:path';
-import dotenv from 'dotenv';
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
-dotenv.config({ path: resolve(__dirname, '../../.env') });
+import '../src/env.js'; // mode-aware env load (+ banner). Pass --prod to target prod.
 
 export function dbConfig() {
   const raw = process.env.DATABASE_URL;

@@ -8,9 +8,10 @@ import { resolve } from 'node:path';
 import pg from 'pg';
 import { dbConfig, dbTarget } from './db.mjs';
 
-const files = process.argv.slice(2);
+// --prod selects the production env (handled in db.mjs → env.js); strip it here.
+const files = process.argv.slice(2).filter((a) => a !== '--prod');
 if (files.length === 0) {
-  console.error('Usage: node scripts/run-sql.mjs <file.sql> [more.sql ...]');
+  console.error('Usage: node scripts/run-sql.mjs [--prod] <file.sql> [more.sql ...]');
   process.exit(1);
 }
 

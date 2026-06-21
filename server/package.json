@@ -9,7 +9,9 @@
     "dev": "node --watch src/index.js",
     "start": "node src/index.js",
     "setup:auth": "node scripts/setup-auth-users.mjs",
-    "setup:storage": "node scripts/setup-storage.mjs"
+    "setup:storage": "node scripts/setup-storage.mjs",
+    "setup:auth:prod": "node scripts/setup-auth-users.mjs --prod",
+    "setup:storage:prod": "node scripts/setup-storage.mjs --prod"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.0",

@@ -10,14 +10,8 @@
 // Idempotent: re-running reuses existing auth users and upserts public.users.
 // Demo passwords are set here for dog-fooding; rotate / reset for real use.
 
-import { fileURLToPath } from 'node:url';
-import { dirname, resolve } from 'node:path';
-import dotenv from 'dotenv';
+import '../src/env.js'; // mode-aware env load (+ banner). Pass --prod to target prod.
 import { createClient } from '@supabase/supabase-js';
-
-// .env lives at the repo root, one level above server/.
-const __dirname = dirname(fileURLToPath(import.meta.url));
-dotenv.config({ path: resolve(__dirname, '../../.env') });
 
 const url = process.env.SUPABASE_URL;
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;

@@ -2,17 +2,14 @@
 // Phase 0: skeleton only. Just enough to prove the server boots and can reach
 // Supabase. Feature routes arrive in later phases (auth shell, list, detail, …).
 
-import { fileURLToPath } from 'node:url';
-import { dirname, resolve } from 'node:path';
+// Load env FIRST (mode-aware: dev by default, prod only when explicit) so that
+// supabase.js and everything below read the right project. See ./env.js.
+import './env.js';
+
 import { randomUUID } from 'node:crypto';
-import dotenv from 'dotenv';
 import express from 'express';
 import cors from 'cors';
 import multer from 'multer';
-
-// .env lives at the repo root, two levels above server/src/.
-const __dirname = dirname(fileURLToPath(import.meta.url));
-dotenv.config({ path: resolve(__dirname, '../../.env') });
 
 const { serviceClient, clientForToken } = await import('./supabase.js');
 const { scanFile } = await import('./scan.js');

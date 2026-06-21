@@ -87,6 +87,29 @@ are blocked" section. `setup:auth` already uses the HTTPS admin API. On a networ
 where the Postgres ports are reachable, `server/scripts/run-sql.mjs` does the same
 over a direct connection via `DATABASE_URL`.
 
+## Two environments — dev vs production (non-negotiable)
+
+There are **two separate Supabase projects**: a **development** one for all local
+work and a **production** one that the live site uses. **Never develop or test
+against production.**
+
+- Env files live at the repo root, git-ignored: **`.env.development`** (dev creds)
+  and **`.env.production`** (prod creds). `.env.example` is the committed template.
+- `server/src/env.js` is the single loader. It defaults to **development**; it
+  loads **production only when `--prod` is passed** (or `NODE_ENV=production`, e.g.
+  on Railway). Every server boot / script prints a banner naming the env + Supabase
+  project — **read it before any write.** A legacy single `.env` is used only if no
+  `.env.<mode>` exists (transitional).
+- **Default (dev):** `npm run dev`, `npm run setup:auth`, and
+  `node scripts/run-sql-api.mjs <file.sql>` all hit **dev**.
+- **Production is explicit:** append `--prod` — e.g.
+  `node scripts/run-sql-api.mjs --prod <file.sql>`, `npm run setup:auth:prod`.
+- **Migration discipline:** apply a new migration to **dev first**, verify, then
+  to **prod** with `--prod` as a deliberate release step (additive/expand-first;
+  see `docs/decisions.md`). Prod runtime env lives in the Vercel/Railway
+  dashboards, not in these files. The Vite client auto-selects `.env.development`
+  for `npm run dev` and `.env.production` for a production build.
+
 ## Git gotcha
 
 Claude Code commits to a **feature branch**; the local dev server shows `main` until you **merge**.

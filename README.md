@@ -21,14 +21,45 @@ for durable project conventions.
 - [Supabase CLI](https://supabase.com/docs/guides/cli)
 - A hosted Supabase project (URL + anon key + service-role key)
 
-## Configuration
+## Configuration — two environments (dev / prod)
 
-Copy `.env.example` to `.env` and fill in the values from your Supabase project
-(Project Settings → API). `.env` is git-ignored — never commit real secrets.
+Development and production use **separate Supabase projects**, so day-to-day work
+never touches live data. Create one env file per environment from the template
+(both are git-ignored — never commit real secrets):
 
 ```
-cp .env.example .env
+cp .env.example .env.development   # your DEV/staging Supabase project
+cp .env.example .env.production    # the LIVE Supabase project
 ```
+
+Fill each with that project's values (Project Settings → API). How they're chosen:
+
+- **Default = development.** `npm run dev`, the local server, and all
+  `server/scripts/*` read `.env.development`.
+- **Production is explicit** — append `--prod`:
+  `node scripts/run-sql-api.mjs --prod <file.sql>`, `npm run setup:auth:prod`,
+  `npm run setup:storage:prod`. (`NODE_ENV=production`, e.g. on Railway, also
+  selects it.)
+- The Vite client auto-loads `.env.development` for `npm run dev` and
+  `.env.production` for a production `vite build`.
+- Every server boot / script prints a banner — `[env] development → … → supabase:
+  <ref>` — so you can confirm which project you're about to touch.
+- If neither file exists, a legacy single `.env` is used (transitional only).
+
+> Production hosting (Vercel/Railway) gets its env from those dashboards, not from
+> these files. Keep `.env.production` locally only to run admin/migration scripts
+> against prod deliberately. **Apply migrations to dev first, verify, then prod with
+> `--prod`.**
+
+### Standing up a fresh dev project (one time)
+
+1. Create a second Supabase project in the dashboard; put its URL + keys + a
+   Personal Access Token in `.env.development`.
+2. Apply all migrations (in order) — defaults to dev:
+   `cd server && node scripts/run-sql-api.mjs ../supabase/migrations/*.sql`
+   (list them in filename order; see the firewall section below).
+3. `npm run setup:auth` and `npm run setup:storage` (both target dev by default).
+4. Load `supabase/seed.sql` for sample data.
 
 ## Database setup
 

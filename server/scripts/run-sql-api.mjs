@@ -9,12 +9,8 @@
 //   node scripts/run-sql-api.mjs ../supabase/migrations/0001.sql ../supabase/seed.sql
 
 import { readFileSync } from 'node:fs';
-import { resolve, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
-import dotenv from 'dotenv';
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
-dotenv.config({ path: resolve(__dirname, '../../.env') });
+import { resolve } from 'node:path';
+import '../src/env.js'; // mode-aware env load (+ banner). Pass --prod to target prod.
 
 const token = process.env.SUPABASE_ACCESS_TOKEN;
 const supabaseUrl = process.env.SUPABASE_URL;
@@ -30,9 +26,10 @@ if (!supabaseUrl) {
 const ref = new URL(supabaseUrl).host.split('.')[0];
 const endpoint = `https://api.supabase.com/v1/projects/${ref}/database/query`;
 
-const files = process.argv.slice(2);
+// --prod selects the production env (handled in env.js); strip it from the file list.
+const files = process.argv.slice(2).filter((a) => a !== '--prod');
 if (files.length === 0) {
-  console.error('Usage: node scripts/run-sql-api.mjs <file.sql> [more.sql ...]');
+  console.error('Usage: node scripts/run-sql-api.mjs [--prod] <file.sql> [more.sql ...]');
   process.exit(1);
 }
 
