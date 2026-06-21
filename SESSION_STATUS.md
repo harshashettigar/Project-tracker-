@@ -3,8 +3,8 @@
 > **Read this first, write it last.** It is the handoff between sessions.
 > Keep it short. Move durable facts to `CLAUDE.md`; keep only what's moving here.
 
-**Last updated:** 2026-06-20 (task priority Low/Mid/High deployed to prod)
-**Current phase:** v1 + post-v1 (members, default-password auth, password reset/change, task priority) live in production. No phase in flight.
+**Last updated:** 2026-06-20 (dev/prod env split + dedicated dev Supabase project)
+**Current phase:** v1 + post-v1 (members, default-password auth, password reset/change, task priority) live in production; dev now runs on a separate Supabase project. No phase in flight.
 
 ---
 
@@ -87,26 +87,30 @@ _None queued._ v1 build order is complete. Candidate follow-ups if work continue
 ## Branch state
 
 - `main`: **everything merged + pushed 2026-06-20** — members, auth/password,
-  admin-table fix, and **task priority (Low/Mid/High)**. Live in prod (Vercel +
-  Railway auto-deploy on push). Nothing in flight.
+  admin-table fix, task priority, and the **dev/prod env split**. Live in prod
+  (Vercel + Railway auto-deploy on push). Nothing in flight.
 - Merged & done: `feature/project-members`, `feature/auth-and-admin-fixes`,
-  `feature/task-priority`.
-- Already applied to the shared (prod) Supabase: the `project_members` migration,
-  the bulk password reset (all users → `Manipal@123`, email-confirmed), and the
-  `task_priority` migration (tasks.priority, default 'mid').
-- **NEXT (queued, not started):** split `.env.development` / `.env.production`
-  onto a SEPARATE dev Supabase project so dev/testing stops hitting the live DB;
-  document the two-project workflow in `CLAUDE.md` + README. (Agreed 2026-06-20.)
+  `feature/task-priority`, `feature/env-split`.
+- **Two Supabase projects now (see CLAUDE.md "Two environments"):**
+  - **dev** `jtgwywgamgkazmzotspf` — `.env.development`; fully bootstrapped
+    2026-06-20 (8 migrations + setup:auth + setup:storage + seed). Local
+    `npm run dev` / scripts default here.
+  - **prod** `mhrwhmhsnhvujckqjdhn` — `.env.production`; the live site. Touch only
+    with `--prod`. (Optional: set `NODE_ENV=production` in Railway so its log
+    banner reads "production" — cosmetic.)
 
 ## Useful facts for next session
 
-- Demo password for all four seeded accounts: `DemoPass!234`. Emails: admin
-  `appuser1.msc@manipalsplchem.com`, `manager.demo@…`, `member.demo@…`,
-  `viewer.demo@…` (all `@manipalsplchem.com`, all `active`).
-- Migrations in `supabase/migrations/` are authoritative (now 5 files, latest
-  `20260617091000_hardening.sql`); `docs/schema.sql` is the human-readable mirror.
-  Add a NEW migration for further DB changes; apply with
-  `cd server && node scripts/run-sql-api.mjs <file.sql>` (HTTPS).
+- **DEV project login** (project `jtgwywgamgkazmzotspf`): the 4 seeded demo
+  accounts, password `DemoPass!234` — admin `appuser1.msc@manipalsplchem.com`,
+  `manager.demo@…`, `member.demo@…`, `viewer.demo@…`. **PROD login** (project
+  `mhrwhmhsnhvujckqjdhn`) is the real users, password `Manipal@123` (admin
+  `harsha.s@manipalgroup.info`). Don't mix them up.
+- Migrations in `supabase/migrations/` are authoritative (now 8 files, latest
+  `20260620090000_task_priority.sql`); `docs/schema.sql` is the human-readable
+  mirror. Add a NEW migration for further DB changes; apply to **dev** with
+  `cd server && node scripts/run-sql-api.mjs <file.sql>`, then to **prod** with
+  `node scripts/run-sql-api.mjs --prod <file.sql>` (HTTPS). Watch the `[env]` banner.
 - Seed: 4 users (one per role), 1 mapping (Manager→Member), 2 top-level projects
   (Plant Safety Audit — Member; ERP Rollout — Manager) + 1 sub-project (Audit —
   Unit B), 2 milestones, 3 tasks, 2 task updates, 0 attachments.
@@ -137,6 +141,20 @@ _None queued._ v1 build order is complete. Candidate follow-ups if work continue
 
 ## Session log (newest first)
 
+- **2026-06-20** — **Dev/prod env split**, merged to `main` and **pushed**
+  (auto-deploys; prod hosts keep using their dashboard env, so no runtime change).
+  `server/src/env.js` is now the single mode-aware loader: defaults to
+  development, loads `.env.production` only on `--prod`/`NODE_ENV=production`,
+  legacy `.env` as fallback; prints an `[env]` banner naming env + project. Wired
+  server + all scripts through it (`run-sql*` strip `--prod` from file args);
+  added `setup:auth:prod`/`setup:storage:prod`; `.gitignore` covers the new files;
+  `.env.example` rewritten; two-project workflow documented in CLAUDE.md + README.
+  **Stood up a dedicated DEV Supabase project** `jtgwywgamgkazmzotspf`: applied all
+  8 migrations + `setup:auth` + `setup:storage` + `seed.sql`, all confirmed
+  hitting dev via the banner. Verified: dev server boots on dev, demo admin login
+  works, `/api/projects` returns the seeded projects. Local dev now isolated from
+  prod. Branch `feature/env-split`. Optional follow-up: set `NODE_ENV=production`
+  in Railway for an accurate prod banner.
 - **2026-06-20** — **Task priority (Low/Mid/High)**, merged to `main` and
   **pushed** (auto-deploys). Each task gains a `priority` (default `mid` =
   "normal"); existing tasks defaulted to `mid` by the migration. Migration
