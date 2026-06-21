@@ -8,6 +8,7 @@ import { STATUSES } from '../../lib/format.js';
 export default function AddMilestoneForm({ projectId, reload }) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
   const [targetDate, setTargetDate] = useState('');
   const [status, setStatus] = useState('draft');
   const [error, setError] = useState('');
@@ -15,6 +16,7 @@ export default function AddMilestoneForm({ projectId, reload }) {
 
   function reset() {
     setName('');
+    setDescription('');
     setTargetDate('');
     setStatus('draft');
     setError('');
@@ -26,7 +28,12 @@ export default function AddMilestoneForm({ projectId, reload }) {
     setBusy(true);
     setError('');
     try {
-      await api.addMilestone(projectId, { name: name.trim(), target_date: targetDate, status });
+      await api.addMilestone(projectId, {
+        name: name.trim(),
+        description: description.trim() || null,
+        target_date: targetDate,
+        status,
+      });
       await reload();
       reset();
       setOpen(false);
@@ -70,6 +77,18 @@ export default function AddMilestoneForm({ projectId, reload }) {
               </option>
             ))}
           </select>
+        </label>
+        <label className="field field-full">
+          <span className="field-label">Description (optional)</span>
+          <textarea
+            className="field-textarea"
+            rows={2}
+            maxLength={2000}
+            value={description}
+            disabled={busy}
+            placeholder="Extra context, shown behind an info icon next to the name."
+            onChange={(e) => setDescription(e.target.value)}
+          />
         </label>
       </div>
       <div className="composer-actions">
