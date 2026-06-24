@@ -3,8 +3,8 @@
 > **Read this first, write it last.** It is the handoff between sessions.
 > Keep it short. Move durable facts to `CLAUDE.md`; keep only what's moving here.
 
-**Last updated:** 2026-06-21 (perceived-performance pass: SWR cache + skeletons + prefetch)
-**Current phase:** v1 + post-v1 live in production; dev runs on a separate Supabase project. All of today's work is **pushed + deployed**: login redesign, milestone/task descriptions, the perceived-performance pass, and the dropdown-chevron polish. No phase in flight.
+**Last updated:** 2026-06-24 (review-period filter: top-bar All/This week/Custom)
+**Current phase:** v1 + post-v1 live in production; dev runs on a separate Supabase project. Login redesign, milestone/task descriptions, perceived-performance pass, and dropdown-chevron polish are **pushed + deployed**. A client-only **review-period filter** is merged to `main` locally but **NOT pushed yet** (see Branch state / Session log). No phase in flight.
 
 ---
 
@@ -86,13 +86,14 @@ _None queued._ v1 build order is complete. Candidate follow-ups if work continue
 
 ## Branch state
 
-- `main`: **everything merged + pushed 2026-06-21** — login redesign, milestone/
-  task descriptions (prod DB migration applied), the perceived-performance pass,
-  and the dropdown-chevron polish. Live in prod (Vercel + Railway auto-deploy on
-  push). Nothing in flight.
+- `main`: pushed state (2026-06-21) is through login redesign, milestone/task
+  descriptions (prod DB migration applied), the perceived-performance pass, and the
+  dropdown-chevron polish (all live in prod). The **review-period filter is merged
+  to `main` locally but NOT pushed** — client-only (no DB/backend change), so
+  `git push` alone deploys it (Vercel rebuild). Nothing in flight.
 - Merged & done: `feature/project-members`, `feature/auth-and-admin-fixes`,
   `feature/task-priority`, `feature/env-split`, `feature/entity-descriptions`,
-  `feature/perceived-perf`.
+  `feature/perceived-perf`, `feature/review-period-filter`.
 - **Two Supabase projects now (see CLAUDE.md "Two environments"):**
   - **dev** `jtgwywgamgkazmzotspf` — `.env.development`; fully bootstrapped
     2026-06-20 (8 migrations + setup:auth + setup:storage + seed). Local
@@ -143,6 +144,28 @@ _None queued._ v1 build order is complete. Candidate follow-ups if work continue
 
 ## Session log (newest first)
 
+- **2026-06-24** — **Review-period filter** (client-only), merged to `main`, **NOT
+  pushed yet** (no DB/backend change — `git push` deploys it). For weekly-review
+  meetings: a centred top-bar segmented control **All · This week · Custom date**
+  changes how task updates are highlighted in the **View** detail. It's a HIGHLIGHT
+  window, not a hide-filter: a task with ≥1 update in the window shows an amber
+  block with **all** its in-window updates stacked (label "Updates this period" for
+  >1, dated newest-first); older updates drop to "Previous update"; a task with no
+  in-window update stays visible but un-highlighted (plain "Latest update"). `All`
+  = today's behaviour (single latest highlighted). A "N tasks updated · M updates"
+  summary shows under the status filter when a window is active. The selection is
+  **global + sticky** — lifted into a `PeriodProvider` above the screens and
+  persisted to localStorage (`pt.reviewPeriod`), so switching projects / refreshing
+  doesn't reset it; `All` is the reset. "This week" = Monday 00:00 local → now.
+  New: `client/src/period/PeriodContext.jsx` (provider + `computeRange`/`inRange`),
+  `client/src/components/PeriodControl.jsx`; wired into `AppShell` (top bar),
+  `AuthedApp` (provider), `TaskUpdateThread` (range-aware), `ProjectDetail`
+  (summary + threads range). The control shows on the list screen too but is inert
+  there for now (decided). Verified in dev preview across All/This week/Custom,
+  multi-update stacking, untouched-stays-plain, summary, and persistence across nav
+  + full reload. Branch `feature/review-period-filter`. (Left 2 test updates on the
+  dev "Collect SOP documents" task — task_updates are append-only, no UI delete;
+  dev-only, harmless.)
 - **2026-06-21** — **Dropdown chevron polish** (client-only), pushed + deployed.
   Native select arrows sat flush to the right edge; replaced with a custom SVG
   chevron inset 0.7rem with reserved `padding-right`, applied to all styled

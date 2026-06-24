@@ -9,6 +9,7 @@ import { Fragment, useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../auth/AuthProvider.jsx';
 import { api } from '../lib/api.js';
 import { useCachedQuery } from '../lib/useCachedQuery.js';
+import { usePeriod, inRange } from '../period/PeriodContext.jsx';
 import { formatDate, STATUSES } from '../lib/format.js';
 import { DetailSkeleton } from '../components/Skeleton.jsx';
 import AppShell from '../components/AppShell.jsx';
@@ -29,7 +30,7 @@ import TaskEditor from '../components/edit/TaskEditor.jsx';
 
 const OBJECTIVE_CLAMP = 180; // chars before the "More ›" expander kicks in (§10.2)
 
-function ReadTaskTable({ tasks }) {
+function ReadTaskTable({ tasks, range }) {
   return (
     <table className="task-table">
       <thead>
@@ -62,7 +63,7 @@ function ReadTaskTable({ tasks }) {
             </tr>
             <tr className="update-row">
               <td colSpan={5}>
-                <TaskUpdateThread updates={t.updates} />
+                <TaskUpdateThread updates={t.updates} range={range} />
               </td>
             </tr>
           </Fragment>
@@ -83,6 +84,23 @@ export default function ProjectDetail({ projectId, initialMode = 'view', onNavig
   );
   const { data: usersData } = useCachedQuery('users', api.listUsers);
   const users = usersData || [];
+  const { range } = usePeriod();
+
+  // Review-period summary (View mode): how many tasks got an update in the window.
+  const periodStats = useMemo(() => {
+    if (!range || !data) return null;
+    let tasks = 0;
+    let updates = 0;
+    const allTasks = [...data.milestones.flatMap((m) => m.tasks), ...data.projectTasks];
+    for (const t of allTasks) {
+      const n = (t.updates || []).filter((u) => inRange(u.created_at, range)).length;
+      if (n > 0) {
+        tasks += 1;
+        updates += n;
+      }
+    }
+    return { tasks, updates };
+  }, [range, data]);
   const [mode, setMode] = useState(initialMode);
   const [objExpanded, setObjExpanded] = useState(false);
   const [statuses, setStatuses] = useState(() => new Set(STATUSES.map((s) => s.value)));
@@ -276,6 +294,15 @@ export default function ProjectDetail({ projectId, initialMode = 'view', onNavig
                   </button>
                 )}
               </div>
+
+              {/* Review-period summary — only when a window is active. */}
+              {periodStats && (
+                <p className="period-summary">
+                  {periodStats.tasks === 0
+                    ? 'No task updates in the selected period.'
+                    : `${periodStats.tasks} ${periodStats.tasks === 1 ? 'task' : 'tasks'} updated · ${periodStats.updates} ${periodStats.updates === 1 ? 'update' : 'updates'} in the selected period.`}
+                </p>
+              )}
             </>
           )}
 
@@ -308,7 +335,7 @@ export default function ProjectDetail({ projectId, initialMode = 'view', onNavig
                         <StatusChip status={m.status} />
                       </header>
                       {visible.length > 0 ? (
-                        <ReadTaskTable tasks={visible} />
+                        <ReadTaskTable tasks={visible} range={range} />
                       ) : (
                         <p className="muted empty-line">No tasks.</p>
                       )}
@@ -351,7 +378,7 @@ export default function ProjectDetail({ projectId, initialMode = 'view', onNavig
                   <header className="milestone-header">
                     <h3 className="milestone-name">Project tasks</h3>
                   </header>
-                  <ReadTaskTable tasks={visible} />
+                  <ReadTaskTable tasks={visible} range={range} />
                 </section>
               );
             })()

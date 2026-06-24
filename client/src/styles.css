@@ -601,6 +601,92 @@ button.topbar-brand:hover .topbar-brand-name {
   gap: 1rem;
 }
 
+/* Review-period control, centred in the top bar regardless of side widths. */
+.topbar-center {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.period-control {
+  position: relative;
+}
+
+.period-seg {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.period-tab {
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.82);
+  font: 600 0.82rem var(--font-sans);
+  padding: 0.32rem 0.8rem;
+  border-radius: 999px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.12s, color 0.12s;
+}
+
+.period-tab:hover:not(.active) {
+  color: #fff;
+}
+
+.period-tab.active {
+  background: #fff;
+  color: var(--navy);
+}
+
+.period-popover {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  padding: 0.9rem;
+  background: #fff;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 12px 32px rgba(20, 40, 60, 0.22);
+}
+
+.period-field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+  font-size: 0.85rem;
+}
+
+.period-field span {
+  font-weight: 600;
+  color: var(--muted-solid);
+}
+
+.period-field input {
+  padding: 0.4rem 0.55rem;
+  font: inherit;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.period-popover-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.8rem;
+  margin-top: 0.2rem;
+}
+
 /* ---- project list (PRD §9) ---------------------------------------------- */
 
 .page-head h1 {
@@ -1346,6 +1432,20 @@ button.topbar-brand:hover .topbar-brand-name {
   border-left: 3px solid #e0a106;
   border-radius: 0 6px 6px 0;
   padding: 0.6rem 0.8rem;
+}
+
+.period-summary {
+  margin: 0 0 0.9rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+/* Stacked highlighted entries (multiple updates within a review period). */
+.update-entry.divided {
+  margin-top: 0.55rem;
+  padding-top: 0.55rem;
+  border-top: 1px solid #f0dca8;
 }
 
 .update.previous {

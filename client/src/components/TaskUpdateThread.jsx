@@ -1,71 +1,103 @@
-// Task update thread (PRD §13) — the canonical, reusable way updates are shown
-// anywhere. The latest update is highlighted (tinted + amber left border) and
-// always visible; the entry just before it shows as a lighter one-line context.
-// "History" expands the full record newest-first, beginning at the second-most-
-// recent entry (the highlighted latest is not repeated). "No updates yet" when
-// empty. View-mode only here; the Edit-mode composer arrives in Phase 4 (§11.4).
+// Task update thread (PRD §13) — the canonical, reusable way updates are shown.
+//
+// Default (no `range`): the single latest update is highlighted (amber); the entry
+// before it shows as one-line context; "History" expands the rest newest-first.
+//
+// With a review `range` (weekly-review period, post-v1): EVERY update that falls
+// inside the window is highlighted together (a 2-week catch-up shows all of them,
+// not just the last), and older updates drop into History. If the task had NO
+// update in the window it isn't highlighted at all — its latest update shows in
+// the plain "previous" style, so untouched tasks stay visible but don't draw the
+// eye. "No updates yet" when empty.
 
 import { useState } from 'react';
 import { formatDate } from '../lib/format.js';
+import { inRange } from '../period/PeriodContext.jsx';
 import Avatar from './Avatar.jsx';
 
-export default function TaskUpdateThread({ updates }) {
+export default function TaskUpdateThread({ updates, range = null }) {
   const [showHistory, setShowHistory] = useState(false);
 
   if (!updates || updates.length === 0) {
     return <div className="update-empty">No updates yet</div>;
   }
 
-  const latest = updates[0];
-  const predecessor = updates[1];
-  const history = updates.slice(1); // newest-first, latest excluded (§13)
+  // `top` = the highlighted (amber) set; `rest` = everything else, newest-first.
+  // - no range  → top is just the latest (today's behaviour)
+  // - range hit → top is all in-window updates
+  // - range miss→ top is empty (task untouched this period → no highlight)
+  let top;
+  if (range) {
+    top = updates.filter((u) => inRange(u.created_at, range));
+  } else {
+    top = [updates[0]];
+  }
+  const inTop = new Set(top.map((u) => u.id));
+  const rest = updates.filter((u) => !inTop.has(u.id));
+
+  const topLabel = top.length > 1 ? 'Updates this period' : 'Latest update';
+  // When there's no highlight, the first "rest" entry IS the latest — label it so.
+  const restLeadLabel = top.length > 0 ? 'Previous update' : 'Latest update';
+  const canToggle = rest.length > 1;
+
+  const HistoryToggle = () => (
+    <button
+      type="button"
+      className="link-button history-toggle"
+      aria-expanded={showHistory}
+      onClick={() => setShowHistory((v) => !v)}
+    >
+      {showHistory ? 'Hide history ▲' : 'History ▾'}
+    </button>
+  );
 
   return (
     <div className="update-thread">
-      <div className="update latest">
-        <div className="update-top">
-          <span className="update-label">Latest update</span>
-          {updates.length > 1 && (
-            <button
-              type="button"
-              className="link-button history-toggle"
-              aria-expanded={showHistory}
-              onClick={() => setShowHistory((v) => !v)}
-            >
-              {showHistory ? 'Hide history ▲' : 'History ▾'}
-            </button>
-          )}
+      {top.length > 0 && (
+        <div className="update latest">
+          <div className="update-top">
+            <span className="update-label">{topLabel}</span>
+            {canToggle && <HistoryToggle />}
+          </div>
+          {top.map((u, i) => (
+            <div className={i > 0 ? 'update-entry divided' : 'update-entry'} key={u.id}>
+              <div className="update-body">{u.body}</div>
+              <div className="update-meta">
+                <Avatar name={u.author_name} size={20} />
+                <span className="update-author">{u.author_name ?? 'Unknown'}</span>
+                <span className="update-dot" aria-hidden="true">
+                  ·
+                </span>
+                <span className="update-date">{formatDate(u.created_at)}</span>
+              </div>
+            </div>
+          ))}
         </div>
-        <div className="update-body">{latest.body}</div>
-        <div className="update-meta">
-          <Avatar name={latest.author_name} size={20} />
-          <span className="update-author">{latest.author_name ?? 'Unknown'}</span>
-          <span className="update-dot" aria-hidden="true">
-            ·
-          </span>
-          <span className="update-date">{formatDate(latest.created_at)}</span>
-        </div>
-      </div>
+      )}
 
-      {/* Collapsed: the immediately-preceding update, shown in full. */}
-      {predecessor && !showHistory && (
+      {/* Collapsed: the most-recent non-highlighted entry, shown in full. When the
+          task has no in-period update this is its latest update (plain style). */}
+      {rest.length > 0 && !showHistory && (
         <div className="update previous">
-          <span className="update-label">Previous update</span>
-          <div className="update-body">{predecessor.body}</div>
+          <div className="update-top">
+            <span className="update-label">{restLeadLabel}</span>
+            {top.length === 0 && canToggle && <HistoryToggle />}
+          </div>
+          <div className="update-body">{rest[0].body}</div>
           <div className="update-meta">
-            <span className="update-author">{predecessor.author_name ?? 'Unknown'}</span>
+            <span className="update-author">{rest[0].author_name ?? 'Unknown'}</span>
             <span className="update-dot" aria-hidden="true">
               ·
             </span>
-            <span className="update-date">{formatDate(predecessor.created_at)}</span>
+            <span className="update-date">{formatDate(rest[0].created_at)}</span>
           </div>
         </div>
       )}
 
-      {/* Expanded: full history newest-first, starting after the latest. */}
+      {/* Expanded: the full set of non-highlighted updates, newest-first. */}
       {showHistory && (
         <div className="update-history">
-          {history.map((u) => (
+          {rest.map((u) => (
             <div className="update previous" key={u.id}>
               <span className="update-label">Previous update</span>
               <div className="update-body">{u.body}</div>
