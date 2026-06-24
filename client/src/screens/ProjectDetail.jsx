@@ -52,12 +52,12 @@ function ReadTaskTable({ tasks, range }) {
                   <InfoPopover text={t.description} label="task description" />
                 </span>
               </td>
-              <td>{formatDate(t.start_date) ?? '—'}</td>
-              <td>{formatDate(t.target_date) ?? '—'}</td>
-              <td>
+              <td data-label="Start">{formatDate(t.start_date) ?? '—'}</td>
+              <td data-label="Target">{formatDate(t.target_date) ?? '—'}</td>
+              <td data-label="Status">
                 <StatusChip status={t.status} />
               </td>
-              <td>
+              <td data-label="Priority">
                 <PriorityChip priority={t.priority || 'mid'} />
               </td>
             </tr>

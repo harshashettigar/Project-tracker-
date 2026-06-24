@@ -3,8 +3,8 @@
 > **Read this first, write it last.** It is the handoff between sessions.
 > Keep it short. Move durable facts to `CLAUDE.md`; keep only what's moving here.
 
-**Last updated:** 2026-06-24 (review-period filter: top-bar All/This week/Custom)
-**Current phase:** v1 + post-v1 live in production; dev runs on a separate Supabase project. Login redesign, milestone/task descriptions, perceived-performance pass, and dropdown-chevron polish are **pushed + deployed**. A client-only **review-period filter** is merged to `main` locally but **NOT pushed yet** (see Branch state / Session log). No phase in flight.
+**Last updated:** 2026-06-24 (review-period filter + responsive/mobile pass)
+**Current phase:** v1 + post-v1 live in production; dev runs on a separate Supabase project. All of today's work is **pushed + deployed**: login redesign, milestone/task descriptions, perceived-performance pass, dropdown-chevron polish, the **review-period filter**, and a **responsive/mobile pass**. No phase in flight.
 
 ---
 
@@ -86,14 +86,14 @@ _None queued._ v1 build order is complete. Candidate follow-ups if work continue
 
 ## Branch state
 
-- `main`: pushed state (2026-06-21) is through login redesign, milestone/task
-  descriptions (prod DB migration applied), the perceived-performance pass, and the
-  dropdown-chevron polish (all live in prod). The **review-period filter is merged
-  to `main` locally but NOT pushed** — client-only (no DB/backend change), so
-  `git push` alone deploys it (Vercel rebuild). Nothing in flight.
+- `main`: **everything merged + pushed 2026-06-24** — login redesign, milestone/
+  task descriptions (prod DB migration applied), perceived-performance pass,
+  dropdown-chevron polish, the review-period filter, and the responsive/mobile
+  pass. Live in prod (Vercel + Railway auto-deploy on push). Nothing in flight.
 - Merged & done: `feature/project-members`, `feature/auth-and-admin-fixes`,
   `feature/task-priority`, `feature/env-split`, `feature/entity-descriptions`,
-  `feature/perceived-perf`, `feature/review-period-filter`.
+  `feature/perceived-perf`, `feature/responsive-mobile` (+ review-period filter,
+  committed directly to `main`).
 - **Two Supabase projects now (see CLAUDE.md "Two environments"):**
   - **dev** `jtgwywgamgkazmzotspf` — `.env.development`; fully bootstrapped
     2026-06-20 (8 migrations + setup:auth + setup:storage + seed). Local
@@ -144,8 +144,23 @@ _None queued._ v1 build order is complete. Candidate follow-ups if work continue
 
 ## Session log (newest first)
 
-- **2026-06-24** — **Review-period filter** (client-only), merged to `main`, **NOT
-  pushed yet** (no DB/backend change — `git push` deploys it). For weekly-review
+- **2026-06-24** — **Responsive / mobile pass** (client-only CSS + data-labels),
+  pushed + deployed. Scoped to the read + quick-update paths (full editing stays
+  desktop-optimised, by decision). (1) **Top bar** wraps below 900px — the
+  review-period control stops being absolutely-centred (a regression from the
+  period filter) and drops to its own centred row; brand wordmark hides ≤520px
+  (logo stays as home link). (2) **Project list → stacked cards ≤720px**: each row
+  becomes a labelled card (data-labels on the `td`s + CSS; Sl hidden, name as
+  title, view/edit at the bottom). (3) **Task tables → cards ≤720px** likewise,
+  each task grouped with its update thread. (4) Tighter gutters, search goes
+  full-width, `summary`/cards-grid wrap. Tablets (721–900) keep the tables.
+  Verified via preview_resize at 375 / 768 / 1280: cards on phones with **no
+  horizontal page scroll**, tables intact + actions visible on tablet, and the
+  period control **perfectly centred again on desktop**. Files: `styles.css`
+  (responsive block at end), `ProjectList.jsx` + `ProjectDetail.jsx` (data-labels).
+  Branch `feature/responsive-mobile`.
+- **2026-06-24** — **Review-period filter** (client-only), pushed + deployed. For
+  weekly-review
   meetings: a centred top-bar segmented control **All · This week · Custom date**
   changes how task updates are highlighted in the **View** detail. It's a HIGHLIGHT
   window, not a hide-filter: a task with ≥1 update in the window shows an amber
@@ -163,7 +178,8 @@ _None queued._ v1 build order is complete. Candidate follow-ups if work continue
   (summary + threads range). The control shows on the list screen too but is inert
   there for now (decided). Verified in dev preview across All/This week/Custom,
   multi-update stacking, untouched-stays-plain, summary, and persistence across nav
-  + full reload. Branch `feature/review-period-filter`. (Left 2 test updates on the
+  + full reload. Committed directly to `main` (a here-string mangled the feature-
+  branch commit, so it landed on `main`; same result). (Left 2 test updates on the
   dev "Collect SOP documents" task — task_updates are append-only, no UI delete;
   dev-only, harmless.)
 - **2026-06-21** — **Dropdown chevron polish** (client-only), pushed + deployed.
