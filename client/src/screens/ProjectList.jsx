@@ -208,12 +208,12 @@ export default function ProjectList({ onOpen, onEdit, onAdmin }) {
                       {p.name}
                     </button>
                   </td>
-                  <td>{formatDate(p.start_date) ?? '—'}</td>
-                  <td>{formatDate(p.target_date) ?? '— Not set'}</td>
-                  <td>
+                  <td data-label="Start">{formatDate(p.start_date) ?? '—'}</td>
+                  <td data-label="Target">{formatDate(p.target_date) ?? '— Not set'}</td>
+                  <td data-label="Status">
                     <StatusChip status={p.status} />
                   </td>
-                  <td>
+                  <td data-label="Owner">
                     <span className="owner-cell">
                       <Avatar name={p.owner_name} />
                       {p.owner_name ?? '—'}

@@ -1970,3 +1970,173 @@ button.topbar-brand:hover .topbar-brand-name {
     grid-template-columns: 1fr 1fr;
   }
 }
+
+/* ======================================================================
+   Responsive / mobile (read + quick-update paths). Phones & small tablets
+   reflow data tables into stacked cards; the top bar wraps so the review-
+   period control drops to its own row instead of overlapping. Heavy editing
+   stays desktop-optimised by design.
+   ====================================================================== */
+
+/* Top bar: below 900px let it wrap and put the period control on its own
+   centred row (it's absolutely-centred on desktop, which would overlap here). */
+@media (max-width: 900px) {
+  .topbar {
+    flex-wrap: wrap;
+    height: auto;
+    min-height: 56px;
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+    row-gap: 0.5rem;
+  }
+  .topbar-center {
+    position: static;
+    transform: none;
+    order: 3;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+  }
+  .period-seg {
+    max-width: 100%;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+}
+
+/* Tighter page gutters on small screens. */
+@media (max-width: 720px) {
+  .shell-body,
+  .shell-body.wide {
+    padding: 1.1rem 0.85rem;
+  }
+
+  .summary-band {
+    padding: 1rem;
+  }
+  .summary-name {
+    font-size: 1.25rem;
+  }
+  .summary-facts {
+    gap: 1rem 1.25rem;
+  }
+
+  /* Search takes the full first row of the filter bar. */
+  .filter-row .filter-search {
+    min-width: 0;
+    flex: 1 1 100%;
+  }
+}
+
+/* Very narrow: drop the brand wordmark (logo stays as the home link) so the
+   top bar's right-hand actions never get squeezed. */
+@media (max-width: 520px) {
+  .topbar-brand-name {
+    display: none;
+  }
+}
+
+/* Card reflow for the data tables (project list + task tables) on phones and
+   small tablets. The header row is hidden; each row becomes a labelled card. */
+@media (max-width: 720px) {
+  .project-list-table,
+  .project-list-table tbody,
+  .project-list-table tr,
+  .project-list-table td,
+  .task-table,
+  .task-table tbody,
+  .task-table tr,
+  .task-table td {
+    display: block;
+    width: auto !important;
+  }
+
+  .project-list-table thead,
+  .task-table thead {
+    display: none;
+  }
+
+  .project-list-table,
+  .task-table {
+    table-layout: auto;
+    border: none;
+    background: transparent;
+  }
+
+  /* A row = a card. */
+  .project-list-table tr {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 11px;
+    margin-bottom: 0.75rem;
+    padding: 0.5rem 0.25rem;
+    overflow: hidden;
+  }
+
+  /* Generic labelled cell: label on the left, value on the right. */
+  .project-list-table td,
+  .task-table tr:not(.update-row) td {
+    border-bottom: none !important;
+    padding: 0.4rem 0.95rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    text-align: right;
+  }
+
+  .project-list-table td::before,
+  .task-table tr:not(.update-row) td[data-label]::before {
+    content: attr(data-label);
+    font-weight: 600;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--muted-solid);
+    text-align: left;
+  }
+
+  /* Serial number is noise on mobile. */
+  .project-list-table td.num {
+    display: none;
+  }
+
+  /* Project / task name = the card title: full width, prominent, no label. */
+  .project-list-table td.project-name,
+  .task-table td.task-name {
+    justify-content: flex-start;
+    text-align: left;
+    padding-top: 0.6rem;
+  }
+  .project-list-table td.project-name::before,
+  .task-table td.task-name::before {
+    display: none;
+  }
+  .project-name-link {
+    font-size: 1.02rem;
+    font-weight: 600;
+  }
+
+  /* Actions sit at the bottom-right of the card. */
+  .project-list-table td.row-actions {
+    justify-content: flex-end;
+  }
+  .project-list-table td.row-actions::before {
+    display: none;
+  }
+
+  /* Task cards: group each task with its update row, separated by a divider. */
+  .task-table tr:not(.update-row) {
+    margin-top: 0.4rem;
+    padding-top: 0.6rem;
+    border-top: 1px solid var(--border);
+  }
+  .task-table tr:first-child:not(.update-row) {
+    border-top: none;
+    margin-top: 0;
+  }
+  .task-table .update-row td {
+    display: block;
+    padding: 0 0.95rem 0.6rem;
+  }
+}
