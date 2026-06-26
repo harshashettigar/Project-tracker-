@@ -4,7 +4,7 @@
 > Keep it short. Move durable facts to `CLAUDE.md`; keep only what's moving here.
 
 **Last updated:** 2026-06-24 (archive projects/milestones/tasks)
-**Current phase:** v1 + post-v1 live in production; dev runs on a separate Supabase project. Pushed + deployed: login redesign, milestone/task descriptions, perceived-performance pass, dropdown-chevron polish, review-period filter, responsive/mobile pass, task-ordering change. An **archive feature** (projects + milestones + tasks) is merged to `main` locally but **NOT pushed yet** — it has a **DB migration that must be applied to PROD with `--prod` BEFORE pushing** (else the deployed code references a missing column). No phase in flight.
+**Current phase:** v1 + post-v1 live in production; dev runs on a separate Supabase project. All of today's work is **pushed + deployed**, including the **archive feature** (projects + milestones + tasks) — its prod DB migration was applied with `--prod` before the push. No phase in flight.
 
 ---
 
@@ -86,11 +86,9 @@ _None queued._ v1 build order is complete. Candidate follow-ups if work continue
 
 ## Branch state
 
-- `main`: pushed state (2026-06-24) is through the task-ordering change (all live
-  in prod). The **archive feature** is merged to `main` locally but **NOT pushed**
-  — it has a **DB migration applied to DEV only**; before pushing, apply it to
-  **prod** with `--prod` (see Session log 2026-06-24 archive), then `git push`
-  (Railway + Vercel). Nothing in flight.
+- `main`: **everything merged + pushed 2026-06-24** — through the archive feature
+  (prod migration applied) and the actions-column fix. Live in prod (Vercel +
+  Railway auto-deploy on push). Nothing in flight.
 - Merged & done: `feature/project-members`, `feature/auth-and-admin-fixes`,
   `feature/task-priority`, `feature/env-split`, `feature/entity-descriptions`,
   `feature/perceived-perf`, `feature/responsive-mobile` (+ review-period filter,
@@ -146,8 +144,11 @@ _None queued._ v1 build order is complete. Candidate follow-ups if work continue
 ## Session log (newest first)
 
 - **2026-06-24** — **Archive** projects / milestones / tasks (migration + server +
-  client), merged to `main`, **NOT pushed yet**. New nullable `archived_at` on all
-  three tables (migration `20260624090000_archive.sql`, **applied to DEV only**) —
+  client), **pushed + deployed** (prod migration applied with `--prod` first, then
+  `be38343..3928154`; Railway + Vercel). Includes a follow-up fix widening the
+  project-list actions column so the new archive icon isn't clipped. New nullable
+  `archived_at` on all three tables (migration `20260624090000_archive.sql`,
+  applied to dev AND prod) —
   a reversible, non-destructive flag, orthogonal to `status` (not a new enum).
   Hidden from active views; surfaced in a dedicated place: a top-bar **Active /
   Archived tab** on the project list (archive icon on active rows, Restore on
@@ -164,9 +165,8 @@ _None queued._ v1 build order is complete. Candidate follow-ups if work continue
   `server/src/index.js`, `lib/api.js`, `screens/ProjectList.jsx` +
   `ProjectDetail.jsx`, `components/edit/MilestoneEditor.jsx` + `TaskEditor.jsx`,
   `styles.css`. **TO DEPLOY (order matters):** `cd server && node
-  scripts/run-sql-api.mjs --prod ../supabase/migrations/20260624090000_archive.sql`
-  FIRST, then `git push` (Railway + Vercel). Expand-first: the additive column is
-  safe to apply ahead of the code.
+  scripts/run-sql-api.mjs --prod …` was applied FIRST, then `git push` (Railway +
+  Vercel). Expand-first: the additive column was applied ahead of the code.
 - **2026-06-24** — **Task ordering** (server + client; no DB migration — `sort_order`
   column already existed), pushed + deployed (`0639b91..fb49d7b`; Railway + Vercel).
   (1) **Append on
