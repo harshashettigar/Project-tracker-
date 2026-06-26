@@ -78,7 +78,7 @@ export default function ProjectDetail({ projectId, initialMode = 'view', onNavig
   // Stale-while-revalidate: a prefetched/previously-seen project renders instantly
   // (no blank), then refreshes in the background. `reload` forces a fresh fetch and
   // is what the editors call after a mutation. Cold loads show the skeleton.
-  const { data, loading, error: loadError, reload } = useCachedQuery(
+  const { data, loading, error: loadError, reload, mutate } = useCachedQuery(
     `project:${projectId}`,
     () => api.getProject(projectId),
   );
@@ -120,18 +120,53 @@ export default function ProjectDetail({ projectId, initialMode = 'view', onNavig
     if (mode === 'edit' && project && !canEdit) setMode('view');
   }, [mode, project, canEdit]);
 
-  // Reorder siblings by renumbering sort_order to array position, then reload.
-  async function move(list, index, dir, patchFn) {
+  // Reorder one step. Optimistic: the UI updates instantly (mutate), and only the
+  // rows whose position actually changed are PATCHed, in the BACKGROUND (no full
+  // reload). This replaces the old "renumber every sibling + await a full reload"
+  // path, which made each arrow click wait on N writes + a big GET.
+  function reorderSiblings(list, index, dir) {
     const to = index + dir;
-    if (to < 0 || to >= list.length) return;
+    if (to < 0 || to >= list.length) return null;
     const arr = [...list];
     const [moved] = arr.splice(index, 1);
     arr.splice(to, 0, moved);
-    await Promise.all(arr.map((it, i) => patchFn(it.id, { sort_order: i })));
-    await reload();
+    return arr.map((it, i) => ({ ...it, sort_order: i }));
   }
-  const moveMilestone = (index, dir) => move(data.milestones, index, dir, api.updateMilestone);
-  const moveTask = (list, index, dir) => move(list, index, dir, api.updateTask);
+
+  function persistOrder(reordered, original, patchFn) {
+    const prevById = new Map(original.map((it) => [it.id, it.sort_order]));
+    const changed = reordered.filter((it) => prevById.get(it.id) !== it.sort_order);
+    // Fire-and-forget; only resync from the server if a write fails.
+    Promise.all(changed.map((it) => patchFn(it.id, { sort_order: it.sort_order }))).catch(() =>
+      reload(),
+    );
+  }
+
+  function moveMilestone(index, dir) {
+    const reordered = reorderSiblings(data.milestones, index, dir);
+    if (!reordered) return;
+    mutate({ ...data, milestones: reordered });
+    persistOrder(reordered, data.milestones, api.updateMilestone);
+  }
+
+  function moveMilestoneTask(milestoneId, index, dir) {
+    const m = data.milestones.find((x) => x.id === milestoneId);
+    if (!m) return;
+    const reordered = reorderSiblings(m.tasks, index, dir);
+    if (!reordered) return;
+    mutate({
+      ...data,
+      milestones: data.milestones.map((x) => (x.id === milestoneId ? { ...x, tasks: reordered } : x)),
+    });
+    persistOrder(reordered, m.tasks, api.updateTask);
+  }
+
+  function moveProjectTask(index, dir) {
+    const reordered = reorderSiblings(data.projectTasks, index, dir);
+    if (!reordered) return;
+    mutate({ ...data, projectTasks: reordered });
+    persistOrder(reordered, data.projectTasks, api.updateTask);
+  }
 
   const statusAllSelected = statuses.size === STATUSES.length;
   function toggleStatus(value) {
@@ -316,7 +351,7 @@ export default function ProjectDetail({ projectId, initialMode = 'view', onNavig
                   index={i}
                   count={data.milestones.length}
                   onMove={(dir) => moveMilestone(i, dir)}
-                  onMoveTask={moveTask}
+                  onMoveTask={moveMilestoneTask}
                   reload={reload}
                 />
               ))
@@ -359,7 +394,7 @@ export default function ProjectDetail({ projectId, initialMode = 'view', onNavig
                     targetRequired
                     index={i}
                     count={data.projectTasks.length}
-                    onMove={(dir) => moveTask(data.projectTasks, i, dir)}
+                    onMove={(dir) => moveProjectTask(i, dir)}
                     reload={reload}
                   />
                 ))}

@@ -6,7 +6,7 @@
 // the `loading` state. `reload()` forces a fresh fetch — call it after a mutation.
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { getCached, fetchCached } from './cache.js';
+import { getCached, setCached, fetchCached } from './cache.js';
 
 export function useCachedQuery(key, fetcher) {
   // Keep the latest fetcher without making it a dependency — each render passes a
@@ -43,6 +43,19 @@ export function useCachedQuery(key, fetcher) {
     revalidate(false).catch(() => {});
   }, [key, revalidate]);
 
+  // Optimistic local update (and cache write) without a refetch — for instant UI
+  // on actions we then persist in the background (e.g. drag/arrow reorder).
+  const mutate = useCallback(
+    (updater) => {
+      setData((prev) => {
+        const next = typeof updater === 'function' ? updater(prev) : updater;
+        setCached(key, next);
+        return next;
+      });
+    },
+    [key],
+  );
+
   return {
     data,
     // Cold load only: no cached data yet and no error to show instead.
@@ -50,5 +63,6 @@ export function useCachedQuery(key, fetcher) {
     error,
     revalidating,
     reload: () => revalidate(true),
+    mutate,
   };
 }

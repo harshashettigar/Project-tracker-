@@ -494,6 +494,7 @@ app.get('/api/projects/:id', async (req, res) => {
     id: t.id,
     name: t.name,
     description: t.description ?? null,
+    sort_order: t.sort_order,
     start_date: t.start_date,
     target_date: t.target_date,
     status: t.status,
@@ -543,6 +544,7 @@ app.get('/api/projects/:id', async (req, res) => {
       id: m.id,
       name: m.name,
       description: m.description ?? null,
+      sort_order: m.sort_order,
       target_date: m.target_date,
       status: m.status,
       tasks: tasksByMilestone.get(m.id) || [],
@@ -811,6 +813,18 @@ app.post('/api/projects/:id/tasks', async (req, res) => {
   const desc = parseDescription(req.body?.description);
   if (desc.error) return res.status(400).json({ ok: false, error: desc.error });
 
+  // New tasks append to the END of their group (project-level, or under a
+  // milestone): next sort_order = current max in that group + 1.
+  let maxQuery = supabase
+    .from('tasks')
+    .select('sort_order')
+    .eq('project_id', id)
+    .order('sort_order', { ascending: false })
+    .limit(1);
+  maxQuery = milestone_id ? maxQuery.eq('milestone_id', milestone_id) : maxQuery.is('milestone_id', null);
+  const { data: maxRows } = await maxQuery;
+  const nextOrder = maxRows && maxRows.length ? (maxRows[0].sort_order ?? 0) + 1 : 0;
+
   const { data, error } = await supabase
     .from('tasks')
     .insert({
@@ -822,6 +836,7 @@ app.post('/api/projects/:id/tasks', async (req, res) => {
       target_date,
       status,
       priority,
+      sort_order: nextOrder,
     })
     .select('id')
     .single();

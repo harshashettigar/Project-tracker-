@@ -3,8 +3,8 @@
 > **Read this first, write it last.** It is the handoff between sessions.
 > Keep it short. Move durable facts to `CLAUDE.md`; keep only what's moving here.
 
-**Last updated:** 2026-06-24 (review-period filter + responsive/mobile pass)
-**Current phase:** v1 + post-v1 live in production; dev runs on a separate Supabase project. All of today's work is **pushed + deployed**: login redesign, milestone/task descriptions, perceived-performance pass, dropdown-chevron polish, the **review-period filter**, and a **responsive/mobile pass**. No phase in flight.
+**Last updated:** 2026-06-24 (task ordering: append-on-create + instant reorder)
+**Current phase:** v1 + post-v1 live in production; dev runs on a separate Supabase project. Pushed + deployed: login redesign, milestone/task descriptions, perceived-performance pass, dropdown-chevron polish, review-period filter, responsive/mobile pass. A **task-ordering change** (append new tasks to end + optimistic reorder) is committed to `main` locally but **NOT pushed yet** (no DB migration; has a server change → Railway redeploy on push). No phase in flight.
 
 ---
 
@@ -86,10 +86,11 @@ _None queued._ v1 build order is complete. Candidate follow-ups if work continue
 
 ## Branch state
 
-- `main`: **everything merged + pushed 2026-06-24** — login redesign, milestone/
-  task descriptions (prod DB migration applied), perceived-performance pass,
-  dropdown-chevron polish, the review-period filter, and the responsive/mobile
-  pass. Live in prod (Vercel + Railway auto-deploy on push). Nothing in flight.
+- `main`: pushed state (2026-06-24) is through the responsive/mobile pass (all
+  live in prod). A **task-ordering change** (append-on-create + optimistic reorder)
+  is committed to `main` locally but **NOT pushed** — has a server change, so
+  `git push` triggers both Railway (API) and Vercel (client) redeploys; no DB
+  migration. Nothing in flight.
 - Merged & done: `feature/project-members`, `feature/auth-and-admin-fixes`,
   `feature/task-priority`, `feature/env-split`, `feature/entity-descriptions`,
   `feature/perceived-perf`, `feature/responsive-mobile` (+ review-period filter,
@@ -144,6 +145,24 @@ _None queued._ v1 build order is complete. Candidate follow-ups if work continue
 
 ## Session log (newest first)
 
+- **2026-06-24** — **Task ordering** (server + client; no DB migration — `sort_order`
+  column already existed), committed to `main`, **NOT pushed yet**. (1) **Append on
+  create:** new tasks now land at the END of their group — `POST /api/projects/:id/
+  tasks` computes `sort_order = max(group)+1` (group = project-level or under a
+  milestone) instead of defaulting to 0. (2) **Instant reorder:** the ▲▼ buttons
+  were slow because each click fired N PATCHes (renumber every sibling, each
+  re-running auth + canEditProject) AND awaited a full project `reload()` (big GET)
+  before the UI moved. Now reorder is **optimistic** — `useCachedQuery` gained a
+  `mutate()` that updates local state + cache instantly; only the rows whose
+  position actually changed are PATCHed, in the BACKGROUND (no reload; resync only
+  on error). Detail now also returns `sort_order` on milestones + tasks so the
+  diff is minimal from first load. `ProjectDetail` reorder handlers split into
+  `moveMilestone` / `moveMilestoneTask(milestoneId,…)` / `moveProjectTask`;
+  `MilestoneEditor` passes `milestone.id`. Verified in dev: reorder flips instantly
+  and persists across reload; new task appends last. Files: `server/src/index.js`,
+  `lib/useCachedQuery.js`, `screens/ProjectDetail.jsx`, `components/edit/
+  MilestoneEditor.jsx`. **To deploy:** `git push` (Vercel + Railway auto-deploy;
+  no migration).
 - **2026-06-24** — **Responsive / mobile pass** (client-only CSS + data-labels),
   pushed + deployed. Scoped to the read + quick-update paths (full editing stays
   desktop-optimised, by decision). (1) **Top bar** wraps below 900px — the

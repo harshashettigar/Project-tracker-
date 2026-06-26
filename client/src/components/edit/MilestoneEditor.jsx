@@ -127,7 +127,7 @@ export default function MilestoneEditor({ projectId, milestone, index, count, on
             targetRequired={false}
             index={i}
             count={milestone.tasks.length}
-            onMove={(dir) => onMoveTask(milestone.tasks, i, dir)}
+            onMove={(dir) => onMoveTask(milestone.id, i, dir)}
             reload={reload}
           />
         ))}
