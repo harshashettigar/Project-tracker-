@@ -4,7 +4,7 @@
 > Keep it short. Move durable facts to `CLAUDE.md`; keep only what's moving here.
 
 **Last updated:** 2026-06-24 (task ordering: append-on-create + instant reorder)
-**Current phase:** v1 + post-v1 live in production; dev runs on a separate Supabase project. Pushed + deployed: login redesign, milestone/task descriptions, perceived-performance pass, dropdown-chevron polish, review-period filter, responsive/mobile pass. A **task-ordering change** (append new tasks to end + optimistic reorder) is committed to `main` locally but **NOT pushed yet** (no DB migration; has a server change → Railway redeploy on push). No phase in flight.
+**Current phase:** v1 + post-v1 live in production; dev runs on a separate Supabase project. All of today's work is **pushed + deployed**: login redesign, milestone/task descriptions, perceived-performance pass, dropdown-chevron polish, review-period filter, responsive/mobile pass, and the **task-ordering change** (append-on-create + optimistic reorder). No phase in flight.
 
 ---
 
@@ -146,7 +146,8 @@ _None queued._ v1 build order is complete. Candidate follow-ups if work continue
 ## Session log (newest first)
 
 - **2026-06-24** — **Task ordering** (server + client; no DB migration — `sort_order`
-  column already existed), committed to `main`, **NOT pushed yet**. (1) **Append on
+  column already existed), pushed + deployed (`0639b91..fb49d7b`; Railway + Vercel).
+  (1) **Append on
   create:** new tasks now land at the END of their group — `POST /api/projects/:id/
   tasks` computes `sort_order = max(group)+1` (group = project-level or under a
   milestone) instead of defaulting to 0. (2) **Instant reorder:** the ▲▼ buttons
@@ -161,8 +162,7 @@ _None queued._ v1 build order is complete. Candidate follow-ups if work continue
   `MilestoneEditor` passes `milestone.id`. Verified in dev: reorder flips instantly
   and persists across reload; new task appends last. Files: `server/src/index.js`,
   `lib/useCachedQuery.js`, `screens/ProjectDetail.jsx`, `components/edit/
-  MilestoneEditor.jsx`. **To deploy:** `git push` (Vercel + Railway auto-deploy;
-  no migration).
+  MilestoneEditor.jsx`. Deployed via `git push` (Vercel + Railway; no migration).
 - **2026-06-24** — **Responsive / mobile pass** (client-only CSS + data-labels),
   pushed + deployed. Scoped to the read + quick-update paths (full editing stays
   desktop-optimised, by decision). (1) **Top bar** wraps below 900px — the
