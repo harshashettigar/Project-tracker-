@@ -1014,7 +1014,7 @@ button.topbar-brand:hover .topbar-brand-name {
 
 .project-list-table th:nth-child(7),
 .project-list-table td:nth-child(7) {
-  width: 92px;
+  width: 132px; /* fits View + Edit + Archive without clipping (overflow:hidden) */
 }
 
 .project-table th,
@@ -1117,6 +1117,10 @@ button.topbar-brand:hover .topbar-brand-name {
 .row-actions {
   text-align: right;
   white-space: nowrap;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 2px;
 }
 
 .icon-button {
