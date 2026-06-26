@@ -43,7 +43,9 @@ async function request(method, path, body) {
 }
 
 export const api = {
-  listProjects: () => request('GET', '/api/projects').then((d) => d.projects),
+  // Archive (post-v1): pass true to fetch the archived projects ("Archived" tab).
+  listProjects: (archived = false) =>
+    request('GET', `/api/projects${archived ? '?archived=1' : ''}`).then((d) => d.projects),
   getProject: (id) => request('GET', `/api/projects/${id}`),
   createProject: (payload) => request('POST', '/api/projects', payload).then((d) => d.project),
   listUsers: () => request('GET', '/api/users').then((d) => d.users),

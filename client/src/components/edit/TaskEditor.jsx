@@ -9,7 +9,7 @@ import { STATUSES, PRIORITIES } from '../../lib/format.js';
 import TaskUpdateThread from '../TaskUpdateThread.jsx';
 import UpdateComposer from './UpdateComposer.jsx';
 
-export default function TaskEditor({ task, targetRequired, index, count, onMove, reload }) {
+export default function TaskEditor({ task, targetRequired, index, count, onMove, onArchive, reload }) {
   const [name, setName] = useState(task.name);
   const [description, setDescription] = useState(task.description || '');
   const [startDate, setStartDate] = useState(task.start_date || '');
@@ -185,6 +185,11 @@ export default function TaskEditor({ task, targetRequired, index, count, onMove,
             }}
           >
             {editingLatest ? 'Close' : 'Edit latest update'}
+          </button>
+        )}
+        {onArchive && (
+          <button type="button" className="ghost-button small" disabled={busy} onClick={onArchive}>
+            Archive
           </button>
         )}
         <button type="button" className="danger-button small" disabled={busy} onClick={remove}>

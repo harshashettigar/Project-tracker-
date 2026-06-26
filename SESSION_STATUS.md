@@ -3,8 +3,8 @@
 > **Read this first, write it last.** It is the handoff between sessions.
 > Keep it short. Move durable facts to `CLAUDE.md`; keep only what's moving here.
 
-**Last updated:** 2026-06-24 (task ordering: append-on-create + instant reorder)
-**Current phase:** v1 + post-v1 live in production; dev runs on a separate Supabase project. All of today's work is **pushed + deployed**: login redesign, milestone/task descriptions, perceived-performance pass, dropdown-chevron polish, review-period filter, responsive/mobile pass, and the **task-ordering change** (append-on-create + optimistic reorder). No phase in flight.
+**Last updated:** 2026-06-24 (archive projects/milestones/tasks)
+**Current phase:** v1 + post-v1 live in production; dev runs on a separate Supabase project. Pushed + deployed: login redesign, milestone/task descriptions, perceived-performance pass, dropdown-chevron polish, review-period filter, responsive/mobile pass, task-ordering change. An **archive feature** (projects + milestones + tasks) is merged to `main` locally but **NOT pushed yet** — it has a **DB migration that must be applied to PROD with `--prod` BEFORE pushing** (else the deployed code references a missing column). No phase in flight.
 
 ---
 
@@ -86,11 +86,11 @@ _None queued._ v1 build order is complete. Candidate follow-ups if work continue
 
 ## Branch state
 
-- `main`: pushed state (2026-06-24) is through the responsive/mobile pass (all
-  live in prod). A **task-ordering change** (append-on-create + optimistic reorder)
-  is committed to `main` locally but **NOT pushed** — has a server change, so
-  `git push` triggers both Railway (API) and Vercel (client) redeploys; no DB
-  migration. Nothing in flight.
+- `main`: pushed state (2026-06-24) is through the task-ordering change (all live
+  in prod). The **archive feature** is merged to `main` locally but **NOT pushed**
+  — it has a **DB migration applied to DEV only**; before pushing, apply it to
+  **prod** with `--prod` (see Session log 2026-06-24 archive), then `git push`
+  (Railway + Vercel). Nothing in flight.
 - Merged & done: `feature/project-members`, `feature/auth-and-admin-fixes`,
   `feature/task-priority`, `feature/env-split`, `feature/entity-descriptions`,
   `feature/perceived-perf`, `feature/responsive-mobile` (+ review-period filter,
@@ -145,6 +145,28 @@ _None queued._ v1 build order is complete. Candidate follow-ups if work continue
 
 ## Session log (newest first)
 
+- **2026-06-24** — **Archive** projects / milestones / tasks (migration + server +
+  client), merged to `main`, **NOT pushed yet**. New nullable `archived_at` on all
+  three tables (migration `20260624090000_archive.sql`, **applied to DEV only**) —
+  a reversible, non-destructive flag, orthogonal to `status` (not a new enum).
+  Hidden from active views; surfaced in a dedicated place: a top-bar **Active /
+  Archived tab** on the project list (archive icon on active rows, Restore on
+  archived), and an **"Archived" section** at the bottom of the project detail
+  (archived milestones + tasks with Restore; Archive buttons on the milestone/task
+  editors). **Excluded from the derived target date** (list `deriveTargets` +
+  detail in-memory). An archived milestone carries its subtree; each row keeps its
+  own flag so restore returns children as they were. Permission = edit; no RLS
+  rewrite (PATCH `{archived}` flows through `can_edit_project`; list `?archived=1`).
+  Verified end-to-end in dev at all three levels (archive→Archived→restore round-
+  trips); dev data restored to original. NOTE: a React error appeared in the
+  console mid-session but was an HMR transient from editing files with the page
+  open — a clean archive/restore cycle threw nothing. Files: migration, schema.sql,
+  `server/src/index.js`, `lib/api.js`, `screens/ProjectList.jsx` +
+  `ProjectDetail.jsx`, `components/edit/MilestoneEditor.jsx` + `TaskEditor.jsx`,
+  `styles.css`. **TO DEPLOY (order matters):** `cd server && node
+  scripts/run-sql-api.mjs --prod ../supabase/migrations/20260624090000_archive.sql`
+  FIRST, then `git push` (Railway + Vercel). Expand-first: the additive column is
+  safe to apply ahead of the code.
 - **2026-06-24** — **Task ordering** (server + client; no DB migration — `sort_order`
   column already existed), pushed + deployed (`0639b91..fb49d7b`; Railway + Vercel).
   (1) **Append on

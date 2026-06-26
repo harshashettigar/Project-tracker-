@@ -51,6 +51,7 @@ create table projects (
   start_date        date,
   objective         text,
   parent_project_id uuid references projects (id) on delete set null,
+  archived_at       timestamptz,                       -- NULL = active; set = archived (post-v1)
   created_at        timestamptz not null default now(),
   updated_at        timestamptz not null default now(),
   constraint projects_not_own_parent check (parent_project_id is null or parent_project_id <> id)
@@ -81,6 +82,7 @@ create table milestones (
   target_date date not null,                         -- required (§12.1)
   status      entity_status not null default 'draft',
   sort_order  integer not null default 0,
+  archived_at timestamptz,                            -- NULL = active; set = archived (post-v1)
   created_at  timestamptz not null default now(),
   updated_at  timestamptz not null default now()
 );
@@ -97,6 +99,7 @@ create table tasks (
   status       entity_status not null default 'draft',
   priority     task_priority not null default 'mid',     -- post-v1 (Low/Mid/High)
   sort_order   integer not null default 0,
+  archived_at  timestamptz,                              -- NULL = active; set = archived (post-v1)
   created_at   timestamptz not null default now(),
   updated_at   timestamptz not null default now(),
   constraint tasks_project_level_needs_target

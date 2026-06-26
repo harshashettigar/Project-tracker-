@@ -21,13 +21,28 @@ export default function ProjectList({ onOpen, onEdit, onAdmin }) {
   const { profile } = useAuth();
   const canCreate = profile?.role !== 'viewer'; // PRD §18
 
+  // Active vs Archived tab (post-v1). Each has its own cache key so switching is
+  // instant and they refresh independently.
+  const [view, setView] = useState('active');
+  const archivedView = view === 'archived';
+
   // Stale-while-revalidate: a revisit renders the cached list instantly and
   // refreshes in the background; only a cold first load shows the skeleton.
   const { data: projects, loading, error: loadError, reload } = useCachedQuery(
-    'projects',
-    api.listProjects,
+    archivedView ? 'projects:archived' : 'projects',
+    () => api.listProjects(archivedView),
   );
   const { data: users } = useCachedQuery('users', api.listUsers);
+
+  // Archive / restore a project, then refresh both tabs (the row moves between
+  // them). Permission is enforced server-side; the UI only offers it to editors.
+  async function setArchived(id, archived) {
+    await api.updateProject(id, { archived });
+    invalidate('projects');
+    invalidate('projects:archived');
+    await reload();
+    setToast(archived ? 'Project archived.' : 'Project restored.');
+  }
 
   // Filters (§9.5). Status starts with all selected (= no status filter).
   const [search, setSearch] = useState('');
@@ -109,6 +124,26 @@ export default function ProjectList({ onOpen, onEdit, onAdmin }) {
         </p>
       )}
 
+      {/* Active / Archived tabs (post-v1). */}
+      <div className="list-tabs" role="group" aria-label="Active or archived projects">
+        <button
+          type="button"
+          className={`list-tab ${!archivedView ? 'active' : ''}`}
+          aria-pressed={!archivedView}
+          onClick={() => setView('active')}
+        >
+          Active
+        </button>
+        <button
+          type="button"
+          className={`list-tab ${archivedView ? 'active' : ''}`}
+          aria-pressed={archivedView}
+          onClick={() => setView('archived')}
+        >
+          Archived
+        </button>
+      </div>
+
       {/* Filter / search row (§9.5) */}
       {projects && projects.length > 0 && (
         <div className="filter-row">
@@ -153,20 +188,27 @@ export default function ProjectList({ onOpen, onEdit, onAdmin }) {
       {loading ? (
         <ListSkeleton />
       ) : projects.length === 0 ? (
-        // First-run empty state (§19.2).
-        <div className="empty-state">
-          <h2>No projects yet</h2>
-          <p className="muted">
-            {canCreate
-              ? 'Create your first project to get started.'
-              : 'Projects you can see will appear here.'}
-          </p>
-          {canCreate && (
-            <button type="button" className="primary-button" onClick={() => setModalOpen(true)}>
-              + New project
-            </button>
-          )}
-        </div>
+        archivedView ? (
+          <div className="empty-state">
+            <h2>No archived projects</h2>
+            <p className="muted">Projects you archive from the Active tab will appear here.</p>
+          </div>
+        ) : (
+          // First-run empty state (§19.2).
+          <div className="empty-state">
+            <h2>No projects yet</h2>
+            <p className="muted">
+              {canCreate
+                ? 'Create your first project to get started.'
+                : 'Projects you can see will appear here.'}
+            </p>
+            {canCreate && (
+              <button type="button" className="primary-button" onClick={() => setModalOpen(true)}>
+                + New project
+              </button>
+            )}
+          </div>
+        )
       ) : filtered.length === 0 ? (
         // Filters return nothing (§19.2).
         <div className="empty-state">
@@ -228,7 +270,7 @@ export default function ProjectList({ onOpen, onEdit, onAdmin }) {
                     >
                       👁
                     </button>
-                    {canEdit && (
+                    {canEdit && !archivedView && (
                       <button
                         type="button"
                         className="icon-button"
@@ -236,6 +278,30 @@ export default function ProjectList({ onOpen, onEdit, onAdmin }) {
                         onClick={() => onEdit?.(p.id)}
                       >
                         ✎
+                      </button>
+                    )}
+                    {canEdit && !archivedView && (
+                      <button
+                        type="button"
+                        className="icon-button"
+                        title="Archive project"
+                        aria-label="Archive project"
+                        onClick={() => setArchived(p.id, true)}
+                      >
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <rect x="3" y="4" width="18" height="4" rx="1" />
+                          <path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8M9 12h6" />
+                        </svg>
+                      </button>
+                    )}
+                    {canEdit && archivedView && (
+                      <button
+                        type="button"
+                        className="link-button"
+                        title="Restore project"
+                        onClick={() => setArchived(p.id, false)}
+                      >
+                        Restore
                       </button>
                     )}
                   </td>
