@@ -91,7 +91,12 @@ export default function ProjectDetail({ projectId, initialMode = 'view', onNavig
     if (!range || !data) return null;
     let tasks = 0;
     let updates = 0;
-    const allTasks = [...data.milestones.flatMap((m) => m.tasks), ...data.projectTasks];
+    // Active tasks only — archived items (and tasks under archived milestones) are
+    // out of view, so they don't count toward the review summary.
+    const allTasks = [
+      ...data.milestones.filter((m) => !m.archived_at).flatMap((m) => m.tasks.filter((t) => !t.archived_at)),
+      ...data.projectTasks.filter((t) => !t.archived_at),
+    ];
     for (const t of allTasks) {
       const n = (t.updates || []).filter((u) => inRange(u.created_at, range)).length;
       if (n > 0) {
@@ -120,6 +125,23 @@ export default function ProjectDetail({ projectId, initialMode = 'view', onNavig
     if (mode === 'edit' && project && !canEdit) setMode('view');
   }, [mode, project, canEdit]);
 
+  // Archive (post-v1) splits each level into active (shown normally) and archived
+  // (moved into the "Archived" section). An archived milestone takes its whole
+  // subtree with it; an archived task whose milestone is still active is listed on
+  // its own. Reordering operates on the ACTIVE sublist only — archived rows keep
+  // their sort_order and re-slot when restored.
+  const activeMilestones = (data?.milestones || []).filter((m) => !m.archived_at);
+  const archivedMilestones = (data?.milestones || []).filter((m) => m.archived_at);
+  const activeProjectTasks = (data?.projectTasks || []).filter((t) => !t.archived_at);
+  // Archived tasks to surface in the Archived section: project-level ones, plus
+  // tasks under a still-active milestone (those under an archived milestone travel
+  // with it, so we don't list them separately).
+  const archivedTasks = [
+    ...(data?.projectTasks || []).filter((t) => t.archived_at),
+    ...activeMilestones.flatMap((m) => m.tasks.filter((t) => t.archived_at)),
+  ];
+  const hasArchived = archivedMilestones.length > 0 || archivedTasks.length > 0;
+
   // Reorder one step. Optimistic: the UI updates instantly (mutate), and only the
   // rows whose position actually changed are PATCHed, in the BACKGROUND (no full
   // reload). This replaces the old "renumber every sibling + await a full reload"
@@ -143,29 +165,43 @@ export default function ProjectDetail({ projectId, initialMode = 'view', onNavig
   }
 
   function moveMilestone(index, dir) {
-    const reordered = reorderSiblings(data.milestones, index, dir);
+    const reordered = reorderSiblings(activeMilestones, index, dir);
     if (!reordered) return;
-    mutate({ ...data, milestones: reordered });
-    persistOrder(reordered, data.milestones, api.updateMilestone);
+    mutate({ ...data, milestones: [...reordered, ...archivedMilestones] });
+    persistOrder(reordered, activeMilestones, api.updateMilestone);
   }
 
   function moveMilestoneTask(milestoneId, index, dir) {
     const m = data.milestones.find((x) => x.id === milestoneId);
     if (!m) return;
-    const reordered = reorderSiblings(m.tasks, index, dir);
+    const active = m.tasks.filter((t) => !t.archived_at);
+    const archived = m.tasks.filter((t) => t.archived_at);
+    const reordered = reorderSiblings(active, index, dir);
     if (!reordered) return;
     mutate({
       ...data,
-      milestones: data.milestones.map((x) => (x.id === milestoneId ? { ...x, tasks: reordered } : x)),
+      milestones: data.milestones.map((x) =>
+        x.id === milestoneId ? { ...x, tasks: [...reordered, ...archived] } : x,
+      ),
     });
-    persistOrder(reordered, m.tasks, api.updateTask);
+    persistOrder(reordered, active, api.updateTask);
   }
 
   function moveProjectTask(index, dir) {
-    const reordered = reorderSiblings(data.projectTasks, index, dir);
+    const reordered = reorderSiblings(activeProjectTasks, index, dir);
     if (!reordered) return;
-    mutate({ ...data, projectTasks: reordered });
-    persistOrder(reordered, data.projectTasks, api.updateTask);
+    mutate({ ...data, projectTasks: [...reordered, ...(data.projectTasks || []).filter((t) => t.archived_at)] });
+    persistOrder(reordered, activeProjectTasks, api.updateTask);
+  }
+
+  // Archive / restore a milestone or task, then refresh the detail.
+  async function setMilestoneArchived(id, archived) {
+    await api.updateMilestone(id, { archived });
+    await reload();
+  }
+  async function setTaskArchived(id, archived) {
+    await api.updateTask(id, { archived });
+    await reload();
   }
 
   const statusAllSelected = statuses.size === STATUSES.length;
@@ -341,24 +377,26 @@ export default function ProjectDetail({ projectId, initialMode = 'view', onNavig
             </>
           )}
 
-          {/* Milestone blocks */}
+          {/* Milestone blocks (archived ones move to the Archived section) */}
           {editing
-            ? data.milestones.map((m, i) => (
+            ? activeMilestones.map((m, i) => (
                 <MilestoneEditor
                   key={m.id}
                   projectId={project.id}
-                  milestone={m}
+                  milestone={{ ...m, tasks: m.tasks.filter((t) => !t.archived_at) }}
                   index={i}
-                  count={data.milestones.length}
+                  count={activeMilestones.length}
                   onMove={(dir) => moveMilestone(i, dir)}
                   onMoveTask={moveMilestoneTask}
+                  onArchive={() => setMilestoneArchived(m.id, true)}
+                  onArchiveTask={(taskId) => setTaskArchived(taskId, true)}
                   reload={reload}
                 />
               ))
-            : data.milestones
+            : activeMilestones
                 .filter((m) => statusAllSelected || statuses.has(m.status) || m.tasks.some(taskVisible))
                 .map((m) => {
-                  const visible = m.tasks.filter(taskVisible);
+                  const visible = m.tasks.filter((t) => !t.archived_at && taskVisible(t));
                   return (
                     <section className="milestone-block" key={m.id}>
                       <header className="milestone-header">
@@ -387,14 +425,15 @@ export default function ProjectDetail({ projectId, initialMode = 'view', onNavig
                 <h3 className="milestone-name">Project tasks</h3>
               </header>
               <div className="milestone-tasks">
-                {data.projectTasks.map((t, i) => (
+                {activeProjectTasks.map((t, i) => (
                   <TaskEditor
                     key={t.id}
                     task={t}
                     targetRequired
                     index={i}
-                    count={data.projectTasks.length}
+                    count={activeProjectTasks.length}
                     onMove={(dir) => moveProjectTask(i, dir)}
+                    onArchive={() => setTaskArchived(t.id, true)}
                     reload={reload}
                   />
                 ))}
@@ -406,7 +445,7 @@ export default function ProjectDetail({ projectId, initialMode = 'view', onNavig
             </section>
           ) : (
             (() => {
-              const visible = data.projectTasks.filter(taskVisible);
+              const visible = activeProjectTasks.filter(taskVisible);
               if (visible.length === 0) return null;
               return (
                 <section className="milestone-block">
@@ -419,8 +458,56 @@ export default function ProjectDetail({ projectId, initialMode = 'view', onNavig
             })()
           )}
 
-          {!editing && data.milestones.length === 0 && data.projectTasks.length === 0 && (
+          {!editing && activeMilestones.length === 0 && activeProjectTasks.length === 0 && !hasArchived && (
             <p className="muted">No milestones or tasks yet.</p>
+          )}
+
+          {/* Archived section (post-v1): archived milestones + tasks, with Restore
+              (when the caller can edit). An archived milestone carries its tasks. */}
+          {hasArchived && (
+            <section className="milestone-block archived-section">
+              <header className="milestone-header">
+                <h3 className="milestone-name">Archived</h3>
+                <span className="muted archived-count">
+                  {archivedMilestones.length + archivedTasks.length} item
+                  {archivedMilestones.length + archivedTasks.length === 1 ? '' : 's'}
+                </span>
+              </header>
+              <ul className="archived-list">
+                {archivedMilestones.map((m) => (
+                  <li className="archived-row" key={`m-${m.id}`}>
+                    <span className="archived-kind">Milestone</span>
+                    <span className="archived-name">{m.name}</span>
+                    <StatusChip status={m.status} />
+                    {canEdit && (
+                      <button
+                        type="button"
+                        className="link-button archived-restore"
+                        onClick={() => setMilestoneArchived(m.id, false)}
+                      >
+                        Restore
+                      </button>
+                    )}
+                  </li>
+                ))}
+                {archivedTasks.map((t) => (
+                  <li className="archived-row" key={`t-${t.id}`}>
+                    <span className="archived-kind">Task</span>
+                    <span className="archived-name">{t.name}</span>
+                    <StatusChip status={t.status} />
+                    {canEdit && (
+                      <button
+                        type="button"
+                        className="link-button archived-restore"
+                        onClick={() => setTaskArchived(t.id, false)}
+                      >
+                        Restore
+                      </button>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </section>
           )}
 
           {/* Files + Sub-projects sit side-by-side (reference design), collapsing

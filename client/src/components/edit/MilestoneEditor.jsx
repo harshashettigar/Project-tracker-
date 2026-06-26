@@ -9,7 +9,7 @@ import { STATUSES } from '../../lib/format.js';
 import TaskEditor from './TaskEditor.jsx';
 import AddTaskForm from './AddTaskForm.jsx';
 
-export default function MilestoneEditor({ projectId, milestone, index, count, onMove, onMoveTask, reload }) {
+export default function MilestoneEditor({ projectId, milestone, index, count, onMove, onMoveTask, onArchive, onArchiveTask, reload }) {
   const [name, setName] = useState(milestone.name);
   const [description, setDescription] = useState(milestone.description || '');
   const [targetDate, setTargetDate] = useState(milestone.target_date || '');
@@ -113,6 +113,11 @@ export default function MilestoneEditor({ projectId, milestone, index, count, on
               Save
             </button>
           )}
+          {onArchive && (
+            <button type="button" className="ghost-button small" disabled={busy} onClick={onArchive}>
+              Archive
+            </button>
+          )}
           <button type="button" className="danger-button small" disabled={busy} onClick={remove}>
             Remove
           </button>
@@ -128,6 +133,7 @@ export default function MilestoneEditor({ projectId, milestone, index, count, on
             index={i}
             count={milestone.tasks.length}
             onMove={(dir) => onMoveTask(milestone.id, i, dir)}
+            onArchive={onArchiveTask ? () => onArchiveTask(t.id) : undefined}
             reload={reload}
           />
         ))}

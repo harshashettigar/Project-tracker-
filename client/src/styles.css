@@ -709,6 +709,32 @@ button.topbar-brand:hover .topbar-brand-name {
   background: #eef2f7;
 }
 
+/* Active / Archived tabs on the project list (post-v1). */
+.list-tabs {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 999px;
+  background: #eef1f5;
+  margin-bottom: 1rem;
+}
+
+.list-tab {
+  border: none;
+  background: transparent;
+  color: var(--muted-solid);
+  font: 600 0.85rem var(--font-sans);
+  padding: 0.4rem 1rem;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.list-tab.active {
+  background: #fff;
+  color: var(--navy);
+  box-shadow: 0 1px 3px rgba(20, 40, 60, 0.12);
+}
+
 .filter-row {
   display: flex;
   flex-wrap: wrap;
@@ -1439,6 +1465,60 @@ button.topbar-brand:hover .topbar-brand-name {
   font-size: 0.85rem;
   font-weight: 600;
   color: var(--accent);
+}
+
+/* Archived section in the project detail (post-v1). */
+.archived-section {
+  background: #f7f9fc;
+}
+
+.archived-count {
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.archived-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.archived-row {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.archived-row:last-child {
+  border-bottom: none;
+}
+
+.archived-kind {
+  flex: none;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted-solid);
+  background: #e7edf4;
+  border-radius: 5px;
+  padding: 0.15rem 0.45rem;
+}
+
+.archived-name {
+  flex: 1 1 auto;
+  font-weight: 600;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.archived-restore {
+  flex: none;
+  font-weight: 600;
 }
 
 /* Stacked highlighted entries (multiple updates within a review period). */

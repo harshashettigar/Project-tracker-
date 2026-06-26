@@ -268,11 +268,16 @@ async function deriveTargets(supabase, ids) {
   const byProject = new Map();
   if (!ids.length) return byProject;
   const [{ data: ms }, { data: ts }] = await Promise.all([
-    supabase.from('milestones').select('project_id, target_date').in('project_id', ids),
+    supabase
+      .from('milestones')
+      .select('project_id, target_date')
+      .is('archived_at', null) // archived items don't influence the derived target (§12.2)
+      .in('project_id', ids),
     supabase
       .from('tasks')
       .select('project_id, target_date')
       .is('milestone_id', null)
+      .is('archived_at', null)
       .in('project_id', ids),
   ]);
   for (const row of [...(ms || []), ...(ts || [])]) {
@@ -294,11 +299,18 @@ app.get('/api/projects', async (req, res) => {
   if (!ctx) return;
   const { supabase } = ctx;
 
-  const { data: projects, error } = await supabase
+  // Archive (post-v1): the list shows active projects by default; ?archived=1
+  // returns the archived ones (the "Archived" tab). Archived ≠ a status value.
+  const wantArchived = req.query.archived === '1' || req.query.archived === 'true';
+
+  let listQuery = supabase
     .from('projects')
-    .select('id, name, owner_user_id, status, start_date, objective')
-    .is('parent_project_id', null)
-    .order('name');
+    .select('id, name, owner_user_id, status, start_date, objective, archived_at')
+    .is('parent_project_id', null);
+  listQuery = wantArchived
+    ? listQuery.not('archived_at', 'is', null)
+    : listQuery.is('archived_at', null);
+  const { data: projects, error } = await listQuery.order('name');
   if (error) return res.status(500).json({ ok: false, error: error.message });
 
   const ids = projects.map((p) => p.id);
@@ -322,6 +334,7 @@ app.get('/api/projects', async (req, res) => {
     target_date: targetByProject.get(p.id) ?? null,
     owner_user_id: p.owner_user_id,
     owner_name: nameById.get(p.owner_user_id) ?? null,
+    archived_at: p.archived_at ?? null,
     can_edit: isAdmin || p.owner_user_id === ctx.profile.id || memberOf.has(p.id),
   }));
   res.json({ ok: true, projects: rows });
@@ -410,7 +423,7 @@ app.get('/api/projects/:id', async (req, res) => {
 
   const { data: project, error } = await supabase
     .from('projects')
-    .select('id, name, owner_user_id, status, start_date, objective, parent_project_id')
+    .select('id, name, owner_user_id, status, start_date, objective, parent_project_id, archived_at')
     .eq('id', id)
     .maybeSingle();
   if (error) return res.status(500).json({ ok: false, error: error.message });
@@ -430,12 +443,12 @@ app.get('/api/projects/:id', async (req, res) => {
   ] = await Promise.all([
     supabase
       .from('milestones')
-      .select('id, name, description, target_date, status, sort_order')
+      .select('id, name, description, target_date, status, sort_order, archived_at')
       .eq('project_id', id)
       .order('sort_order'),
     supabase
       .from('tasks')
-      .select('id, milestone_id, name, description, start_date, target_date, status, priority, sort_order')
+      .select('id, milestone_id, name, description, start_date, target_date, status, priority, sort_order, archived_at')
       .eq('project_id', id)
       .order('sort_order'),
     supabase
@@ -495,6 +508,7 @@ app.get('/api/projects/:id', async (req, res) => {
     name: t.name,
     description: t.description ?? null,
     sort_order: t.sort_order,
+    archived_at: t.archived_at ?? null,
     start_date: t.start_date,
     target_date: t.target_date,
     status: t.status,
@@ -517,11 +531,14 @@ app.get('/api/projects/:id', async (req, res) => {
   // Derived target (§12.2) = latest target across milestones + direct (no-
   // milestone) tasks. Computed from rows already loaded above, so it costs no
   // extra round-trip. ISO dates (yyyy-mm-dd) compare correctly as strings.
+  // Archived items don't influence the derived target (post-v1, matches the list).
   let targetDate = null;
   for (const m of milestones || []) {
+    if (m.archived_at) continue;
     if (m.target_date && (!targetDate || m.target_date > targetDate)) targetDate = m.target_date;
   }
   for (const t of tasks || []) {
+    if (t.archived_at) continue;
     if (!t.milestone_id && t.target_date && (!targetDate || t.target_date > targetDate))
       targetDate = t.target_date;
   }
@@ -539,12 +556,14 @@ app.get('/api/projects/:id', async (req, res) => {
       parent_project_id: project.parent_project_id,
       parent_name: parentName,
       target_date: targetDate,
+      archived_at: project.archived_at ?? null,
     },
     milestones: (milestones || []).map((m) => ({
       id: m.id,
       name: m.name,
       description: m.description ?? null,
       sort_order: m.sort_order,
+      archived_at: m.archived_at ?? null,
       target_date: m.target_date,
       status: m.status,
       tasks: tasksByMilestone.get(m.id) || [],
@@ -667,6 +686,7 @@ app.patch('/api/projects/:id', async (req, res) => {
   }
   if ('objective' in req.body) patch.objective = req.body.objective?.trim() || null;
   if ('start_date' in req.body) patch.start_date = req.body.start_date || null;
+  if ('archived' in req.body) patch.archived_at = req.body.archived ? new Date().toISOString() : null;
   if ('status' in req.body) {
     if (!STATUS_VALUES.has(req.body.status))
       return res.status(400).json({ ok: false, error: 'Invalid status.' });
@@ -760,6 +780,7 @@ app.patch('/api/milestones/:id', async (req, res) => {
     patch.status = req.body.status;
   }
   if ('sort_order' in req.body) patch.sort_order = req.body.sort_order;
+  if ('archived' in req.body) patch.archived_at = req.body.archived ? new Date().toISOString() : null;
   if (Object.keys(patch).length === 0)
     return res.status(400).json({ ok: false, error: 'nothing to update' });
 
@@ -886,6 +907,7 @@ app.patch('/api/tasks/:id', async (req, res) => {
     patch.priority = req.body.priority;
   }
   if ('sort_order' in req.body) patch.sort_order = req.body.sort_order;
+  if ('archived' in req.body) patch.archived_at = req.body.archived ? new Date().toISOString() : null;
   if (Object.keys(patch).length === 0)
     return res.status(400).json({ ok: false, error: 'nothing to update' });
 
