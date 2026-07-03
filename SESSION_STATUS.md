@@ -149,7 +149,9 @@ _None queued._ v1 build order is complete. Candidate follow-ups if work continue
   order). Status sorts by canonical order (not alphabetical); empty dates/owners
   sort last; Sl + Actions not sortable. New `SortableTh` in `ProjectList.jsx` +
   `.th-sort` CSS; sorts the already-filtered rows in memory, works on both Active
-  and Archived tabs. NOTE: on mobile the table is cards (headers hidden) so there's
+  and Archived tabs. **Default sort = Responsible (owner) ascending** (commit
+  `8379763`, pushed); a third click on that header falls back to name order.
+  NOTE: on mobile the table is cards (headers hidden) so there's
   no sort control there yet — a "Sort by" dropdown for cards is the follow-up if
   wanted.
 - **2026-06-24** — **Archive** projects / milestones / tasks (migration + server +
