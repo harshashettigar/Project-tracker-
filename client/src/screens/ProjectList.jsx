@@ -96,9 +96,10 @@ export default function ProjectList({ onOpen, onEdit, onAdmin }) {
     });
   }, [projects, search, owner, statuses, statusAllSelected]);
 
-  // Column sort (post-v1). Client-only over the filtered rows. Click a header to
-  // sort asc, again for desc, a third time to clear (back to default name order).
-  const [sort, setSort] = useState(null); // { key, dir: 'asc' | 'desc' }
+  // Column sort (post-v1). Client-only over the filtered rows. Defaults to
+  // Responsible (owner) ascending; click a header to sort asc, again for desc, a
+  // third time to clear (falls back to the server's name order).
+  const [sort, setSort] = useState({ key: 'owner_name', dir: 'asc' }); // or null
   const STATUS_ORDER = useMemo(
     () => Object.fromEntries(STATUSES.map((s, i) => [s.value, i])),
     [],
