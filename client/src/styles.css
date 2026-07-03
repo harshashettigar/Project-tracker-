@@ -1033,6 +1033,34 @@ button.topbar-brand:hover .topbar-brand-name {
   color: var(--muted-solid);
 }
 
+/* Sortable column header (post-v1): the whole header is a button. */
+.th-sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  text-transform: inherit;
+  letter-spacing: inherit;
+  cursor: pointer;
+}
+
+.th-sort:hover {
+  color: var(--navy);
+}
+
+.th-sort.active {
+  color: var(--navy);
+}
+
+.th-sort-arrow {
+  font-size: 0.7em;
+  line-height: 1;
+}
+
 .project-table tbody tr:last-child td {
   border-bottom: none;
 }

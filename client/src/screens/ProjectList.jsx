@@ -17,6 +17,28 @@ import NewProjectModal from '../components/NewProjectModal.jsx';
 
 const ALL_OWNERS = '__all__';
 
+// A clickable column header that sorts the list. Shows ▲/▼ when it's the active
+// sort column; the whole header is the button so it's an easy target.
+function SortableTh({ label, sortKey, sort, onSort }) {
+  const active = sort?.key === sortKey;
+  const arrow = active ? (sort.dir === 'asc' ? '▲' : '▼') : '';
+  return (
+    <th>
+      <button
+        type="button"
+        className={`th-sort ${active ? 'active' : ''}`}
+        aria-sort={active ? (sort.dir === 'asc' ? 'ascending' : 'descending') : 'none'}
+        onClick={() => onSort(sortKey)}
+      >
+        {label}
+        <span className="th-sort-arrow" aria-hidden="true">
+          {arrow}
+        </span>
+      </button>
+    </th>
+  );
+}
+
 export default function ProjectList({ onOpen, onEdit, onAdmin }) {
   const { profile } = useAuth();
   const canCreate = profile?.role !== 'viewer'; // PRD §18
@@ -73,6 +95,56 @@ export default function ProjectList({ onOpen, onEdit, onAdmin }) {
       return true;
     });
   }, [projects, search, owner, statuses, statusAllSelected]);
+
+  // Column sort (post-v1). Client-only over the filtered rows. Click a header to
+  // sort asc, again for desc, a third time to clear (back to default name order).
+  const [sort, setSort] = useState(null); // { key, dir: 'asc' | 'desc' }
+  const STATUS_ORDER = useMemo(
+    () => Object.fromEntries(STATUSES.map((s, i) => [s.value, i])),
+    [],
+  );
+
+  const sorted = useMemo(() => {
+    if (!sort) return filtered;
+    const { key, dir } = sort;
+    const mult = dir === 'asc' ? 1 : -1;
+    const val = (p) => {
+      switch (key) {
+        case 'name':
+          return (p.name || '').toLowerCase();
+        case 'owner_name':
+          return (p.owner_name || '').toLowerCase();
+        case 'status':
+          return STATUS_ORDER[p.status] ?? 999; // canonical order, not alphabetical
+        case 'start_date':
+          return p.start_date || '';
+        case 'target_date':
+          return p.target_date || '';
+        default:
+          return '';
+      }
+    };
+    const isEmpty = (v) => v === '' || v == null;
+    return [...filtered].sort((a, b) => {
+      const va = val(a);
+      const vb = val(b);
+      // Empty values (no date / no owner) always sort last, regardless of dir.
+      if (isEmpty(va) && isEmpty(vb)) return 0;
+      if (isEmpty(va)) return 1;
+      if (isEmpty(vb)) return -1;
+      if (va < vb) return -mult;
+      if (va > vb) return mult;
+      return 0;
+    });
+  }, [filtered, sort, STATUS_ORDER]);
+
+  function toggleSort(key) {
+    setSort((prev) => {
+      if (!prev || prev.key !== key) return { key, dir: 'asc' };
+      if (prev.dir === 'asc') return { key, dir: 'desc' };
+      return null; // third click clears the sort
+    });
+  }
 
   const hasActiveFilters = search.trim() || owner !== ALL_OWNERS || !statusAllSelected;
 
@@ -222,16 +294,16 @@ export default function ProjectList({ onOpen, onEdit, onAdmin }) {
           <thead>
             <tr>
               <th className="num">Sl</th>
-              <th>Project Name</th>
-              <th>Start Date</th>
-              <th>Target Date</th>
-              <th>Status</th>
-              <th>Responsible</th>
+              <SortableTh label="Project Name" sortKey="name" sort={sort} onSort={toggleSort} />
+              <SortableTh label="Start Date" sortKey="start_date" sort={sort} onSort={toggleSort} />
+              <SortableTh label="Target Date" sortKey="target_date" sort={sort} onSort={toggleSort} />
+              <SortableTh label="Status" sortKey="status" sort={sort} onSort={toggleSort} />
+              <SortableTh label="Responsible" sortKey="owner_name" sort={sort} onSort={toggleSort} />
               <th aria-label="Actions" />
             </tr>
           </thead>
           <tbody>
-            {filtered.map((p, i) => {
+            {sorted.map((p, i) => {
               // can_edit comes from the server (owner/admin/member); fall back to
               // the owner/admin check for safety if an older payload lacks it.
               const canEdit = p.can_edit ?? (profile?.role === 'admin' || p.owner_user_id === profile?.id);
