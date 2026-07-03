@@ -3,8 +3,8 @@
 > **Read this first, write it last.** It is the handoff between sessions.
 > Keep it short. Move durable facts to `CLAUDE.md`; keep only what's moving here.
 
-**Last updated:** 2026-06-24 (archive projects/milestones/tasks)
-**Current phase:** v1 + post-v1 live in production; dev runs on a separate Supabase project. All of today's work is **pushed + deployed**, including the **archive feature** (projects + milestones + tasks) — its prod DB migration was applied with `--prod` before the push. No phase in flight.
+**Last updated:** 2026-06-24 (project-list column sorting)
+**Current phase:** v1 + post-v1 live in production; dev runs on a separate Supabase project. All of today's work is **pushed + deployed**, including the **archive feature** (prod DB migration applied with `--prod` before its push) and **clickable column sorting** on the project list. No phase in flight.
 
 ---
 
@@ -143,6 +143,15 @@ _None queued._ v1 build order is complete. Candidate follow-ups if work continue
 
 ## Session log (newest first)
 
+- **2026-06-24** — **Project-list column sorting** (client-only), pushed + deployed
+  (`b727391..cd6b3e3`; Vercel). Clickable headers on Project Name / Start / Target /
+  Status / Responsible: click = asc, again = desc, third = clear (default name
+  order). Status sorts by canonical order (not alphabetical); empty dates/owners
+  sort last; Sl + Actions not sortable. New `SortableTh` in `ProjectList.jsx` +
+  `.th-sort` CSS; sorts the already-filtered rows in memory, works on both Active
+  and Archived tabs. NOTE: on mobile the table is cards (headers hidden) so there's
+  no sort control there yet — a "Sort by" dropdown for cards is the follow-up if
+  wanted.
 - **2026-06-24** — **Archive** projects / milestones / tasks (migration + server +
   client), **pushed + deployed** (prod migration applied with `--prod` first, then
   `be38343..3928154`; Railway + Vercel). Includes a follow-up fix widening the
