@@ -3,7 +3,7 @@
 > **Read this first, write it last.** It is the handoff between sessions.
 > Keep it short. Move durable facts to `CLAUDE.md`; keep only what's moving here.
 
-**Last updated:** 2026-06-24 (project-list column sorting)
+**Last updated:** 2026-07-14 (review view: collapsible milestones + "only updated" switch)
 **Current phase:** v1 + post-v1 live in production; dev runs on a separate Supabase project. All of today's work is **pushed + deployed**, including the **archive feature** (prod DB migration applied with `--prod` before its push) and **clickable column sorting** on the project list. No phase in flight.
 
 ---
@@ -143,6 +143,20 @@ _None queued._ v1 build order is complete. Candidate follow-ups if work continue
 
 ## Session log (newest first)
 
+- **2026-07-14 (post-v1, review view)** — Detail view, View-mode only, client-only
+  (`ProjectDetail.jsx` + `styles.css`; built + verified in-browser against the dev
+  project `jtgwywgamgkazmzotspf`, which was seeded via `setup:auth` + `seed.sql`).
+  (1) Collapsible milestones, collapsed by default with a "N tasks · M updated"
+  badge; Edit mode unchanged. (2) "Show only tasks updated in this period" switch —
+  filters to tasks with an in-window update + their milestones, auto-expands the
+  matches, hides the rest; disabled under period "All"; shares `inRange()` with the
+  update highlight so filter and highlight always agree. (3) Milestone accent band
+  (tinted header + left border) distinguishing milestones from project-tasks/
+  archived blocks. No API/DB change. Env note: earlier-this-session edits
+  (editable-latest-update migration + save-button/perf fixes) ran against
+  `mhrwhmhsnhvujckqjdhn`, now `.env.production` — apply that migration to dev if
+  not already. Also fixed this session: stuck "Saving…" buttons; editable latest
+  task update.
 - **2026-06-24** — **Project-list column sorting** (client-only), pushed + deployed
   (`b727391..cd6b3e3`; Vercel). Clickable headers on Project Name / Start / Target /
   Status / Responsible: click = asc, again = desc, third = clear (default name
