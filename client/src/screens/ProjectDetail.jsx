@@ -29,6 +29,7 @@ import AddTaskForm from '../components/edit/AddTaskForm.jsx';
 import TaskEditor from '../components/edit/TaskEditor.jsx';
 
 const OBJECTIVE_CLAMP = 180; // chars before the "More ›" expander kicks in (§10.2)
+const PROJECT_TASKS_KEY = '__project_tasks__'; // expand/collapse key for the project-level group
 
 function ReadTaskTable({ tasks, range }) {
   return (
@@ -215,6 +216,66 @@ export default function ProjectDetail({ projectId, initialMode = 'view', onNavig
   }
   const taskVisible = (t) => statusAllSelected || statuses.has(t.status);
 
+  // Review view (post-v1): milestones are collapsible (View mode), and a switch
+  // narrows the page to only what got an update inside the active review period.
+  // Both are pure view concerns and depend on the existing `range` + `inRange`.
+  const [onlyUpdated, setOnlyUpdated] = useState(false);
+  const [expandedIds, setExpandedIds] = useState(() => new Set()); // collapsed by default
+  const periodActive = !!range;
+  const onlyUpdatedActive = onlyUpdated && periodActive;
+
+  const taskHasUpdateInRange = (t) =>
+    periodActive && (t.updates || []).some((u) => inRange(u.created_at, range));
+  // A task shows if it passes the status filter and — when the switch is on —
+  // was updated inside the period. Highlight and filter use the same predicate.
+  const taskVisibleFull = (t) => taskVisible(t) && (!onlyUpdatedActive || taskHasUpdateInRange(t));
+  const milestoneMatches = (m) => {
+    const visible = m.tasks.filter((t) => !t.archived_at && taskVisibleFull(t));
+    if (onlyUpdatedActive) return visible.length > 0;
+    return statusAllSelected || statuses.has(m.status) || visible.length > 0;
+  };
+
+  function toggleExpanded(id) {
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  // Turning the switch OFF collapses everything back to the header-only default;
+  // turning it ON hands off to the auto-expand effect below.
+  function toggleOnlyUpdated() {
+    setOnlyUpdated((v) => {
+      if (v) setExpandedIds(new Set());
+      return !v;
+    });
+  }
+
+  // While the switch is on, auto-expand exactly the milestones (and the project
+  // group) that have an in-period update, and collapse the rest. Re-runs when the
+  // period or data changes so the expansion always tracks the highlighted set.
+  useEffect(() => {
+    if (!onlyUpdated || !range || !data) return;
+    const has = (t) => (t.updates || []).some((u) => inRange(u.created_at, range));
+    const ids = new Set();
+    for (const m of data.milestones || []) {
+      if (!m.archived_at && m.tasks.some((t) => !t.archived_at && has(t))) ids.add(m.id);
+    }
+    if ((data.projectTasks || []).some((t) => !t.archived_at && has(t))) ids.add(PROJECT_TASKS_KEY);
+    setExpandedIds(ids);
+  }, [onlyUpdated, range, data]);
+
+  // The switch is meaningless without a window: if the period drops to "All"
+  // while it's on, switch it off and reset to the collapsed default.
+  useEffect(() => {
+    if (!range && onlyUpdated) {
+      setOnlyUpdated(false);
+      setExpandedIds(new Set());
+    }
+  }, [range, onlyUpdated]);
+
   // Breadcrumb (§7.1): the "Project Tracker" brand in the top bar is the home
   // link, so the title is just [parent /] current project name.
   const title = useMemo(() => {
@@ -366,6 +427,27 @@ export default function ProjectDetail({ projectId, initialMode = 'view', onNavig
                 )}
               </div>
 
+              {/* "Show only updated" switch — active only with a review window
+                  (disabled under "All", where "updated in the period" is undefined). */}
+              <div className="review-controls">
+                <label
+                  className={`review-switch ${periodActive ? '' : 'disabled'}`}
+                  title={periodActive ? undefined : 'Pick “This week” or a custom date range to filter'}
+                >
+                  <input
+                    type="checkbox"
+                    role="switch"
+                    checked={onlyUpdatedActive}
+                    disabled={!periodActive}
+                    onChange={toggleOnlyUpdated}
+                  />
+                  <span className="review-switch-track" aria-hidden="true">
+                    <span className="review-switch-knob" />
+                  </span>
+                  <span className="review-switch-label">Show only tasks updated in this period</span>
+                </label>
+              </div>
+
               {/* Review-period summary — only when a window is active. */}
               {periodStats && (
                 <p className="period-summary">
@@ -393,28 +475,51 @@ export default function ProjectDetail({ projectId, initialMode = 'view', onNavig
                   reload={reload}
                 />
               ))
-            : activeMilestones
-                .filter((m) => statusAllSelected || statuses.has(m.status) || m.tasks.some(taskVisible))
-                .map((m) => {
-                  const visible = m.tasks.filter((t) => !t.archived_at && taskVisible(t));
-                  return (
-                    <section className="milestone-block" key={m.id}>
-                      <header className="milestone-header">
-                        <h3 className="milestone-name name-with-info">
+            : activeMilestones.filter(milestoneMatches).map((m) => {
+                const activeTasks = m.tasks.filter((t) => !t.archived_at);
+                const visible = activeTasks.filter(taskVisibleFull);
+                const updatedCount = periodActive
+                  ? activeTasks.filter(taskHasUpdateInRange).length
+                  : null;
+                const isOpen = expandedIds.has(m.id);
+                const bodyId = `m-body-${m.id}`;
+                return (
+                  <section className="milestone-block milestone" key={m.id}>
+                    <header className="milestone-header collapsible">
+                      <h3 className="milestone-name">
+                        <button
+                          type="button"
+                          className="milestone-toggle"
+                          aria-expanded={isOpen}
+                          aria-controls={bodyId}
+                          onClick={() => toggleExpanded(m.id)}
+                        >
+                          <span className="chevron" aria-hidden="true">
+                            ▸
+                          </span>
                           {m.name}
-                          <InfoPopover text={m.description} label="milestone description" />
-                        </h3>
-                        <span className="milestone-target">Target {formatDate(m.target_date)}</span>
-                        <StatusChip status={m.status} />
-                      </header>
-                      {visible.length > 0 ? (
-                        <ReadTaskTable tasks={visible} range={range} />
-                      ) : (
-                        <p className="muted empty-line">No tasks.</p>
-                      )}
-                    </section>
-                  );
-                })}
+                        </button>
+                      </h3>
+                      <InfoPopover text={m.description} label="milestone description" />
+                      <span className="milestone-target">Target {formatDate(m.target_date)}</span>
+                      <StatusChip status={m.status} />
+                      <span className="milestone-badge">
+                        {visible.length} {visible.length === 1 ? 'task' : 'tasks'}
+                        {updatedCount != null && ` · ${updatedCount} updated`}
+                      </span>
+                    </header>
+                    {isOpen && (
+                      <div id={bodyId}>
+                        {visible.length > 0 ? (
+                          <ReadTaskTable tasks={visible} range={range} />
+                        ) : (
+                          <p className="muted empty-line">No tasks.</p>
+                        )}
+                      </div>
+                    )}
+                  </section>
+                );
+              })}
 
           {editing && <AddMilestoneForm projectId={project.id} reload={reload} />}
 
@@ -445,18 +550,52 @@ export default function ProjectDetail({ projectId, initialMode = 'view', onNavig
             </section>
           ) : (
             (() => {
-              const visible = activeProjectTasks.filter(taskVisible);
+              const visible = activeProjectTasks.filter(taskVisibleFull);
               if (visible.length === 0) return null;
+              const updatedCount = periodActive
+                ? activeProjectTasks.filter(taskHasUpdateInRange).length
+                : null;
+              const isOpen = expandedIds.has(PROJECT_TASKS_KEY);
+              const bodyId = 'm-body-project-tasks';
               return (
                 <section className="milestone-block">
-                  <header className="milestone-header">
-                    <h3 className="milestone-name">Project tasks</h3>
+                  <header className="milestone-header collapsible">
+                    <h3 className="milestone-name">
+                      <button
+                        type="button"
+                        className="milestone-toggle"
+                        aria-expanded={isOpen}
+                        aria-controls={bodyId}
+                        onClick={() => toggleExpanded(PROJECT_TASKS_KEY)}
+                      >
+                        <span className="chevron" aria-hidden="true">
+                          ▸
+                        </span>
+                        Project tasks
+                      </button>
+                    </h3>
+                    <span className="milestone-badge">
+                      {visible.length} {visible.length === 1 ? 'task' : 'tasks'}
+                      {updatedCount != null && ` · ${updatedCount} updated`}
+                    </span>
                   </header>
-                  <ReadTaskTable tasks={visible} range={range} />
+                  {isOpen && (
+                    <div id={bodyId}>
+                      <ReadTaskTable tasks={visible} range={range} />
+                    </div>
+                  )}
                 </section>
               );
             })()
           )}
+
+          {/* Filter-empty state: a window + switch are on but nothing matches. */}
+          {!editing &&
+            onlyUpdatedActive &&
+            !activeMilestones.some(milestoneMatches) &&
+            !activeProjectTasks.some(taskVisibleFull) && (
+              <p className="muted">No tasks were updated in this period.</p>
+            )}
 
           {!editing && activeMilestones.length === 0 && activeProjectTasks.length === 0 && !hasArchived && (
             <p className="muted">No milestones or tasks yet.</p>
