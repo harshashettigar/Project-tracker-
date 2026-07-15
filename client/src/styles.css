@@ -601,11 +601,15 @@ button.topbar-brand:hover .topbar-brand-name {
   gap: 1rem;
 }
 
-/* Review-period control, centred in the top bar regardless of side widths. */
+/* Review-period control + "Only updated" switch, centred in the top bar
+   regardless of side widths. */
 .topbar-center {
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
 }
 
 .period-control {
@@ -1537,9 +1541,18 @@ button.topbar-brand:hover .topbar-brand-name {
   color: var(--accent);
 }
 
-/* "Show only tasks updated in this period" switch. */
-.review-controls {
-  margin: 0.25rem 0 0.75rem;
+/* "Only updated" switch in the top bar (beside the date selector). Reuses the
+   .review-switch track/knob; tuned for the navy bar (white label, lighter track).
+   The label inherits the bar's white text; the off-track is a translucent white. */
+.topbar-switch {
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+.topbar-switch .review-switch-track {
+  background: rgba(255, 255, 255, 0.22);
+}
+.topbar-switch input:checked + .review-switch-track {
+  background: var(--accent-strong);
 }
 .review-switch {
   display: inline-flex;

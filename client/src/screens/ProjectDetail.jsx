@@ -5,7 +5,7 @@
 // derived and read-only (§12.2). Capability is enforced server/DB-side; the mode
 // only decides what to render.
 
-import { Fragment, useEffect, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '../auth/AuthProvider.jsx';
 import { api } from '../lib/api.js';
 import { useCachedQuery } from '../lib/useCachedQuery.js';
@@ -85,7 +85,7 @@ export default function ProjectDetail({ projectId, initialMode = 'view', onNavig
   );
   const { data: usersData } = useCachedQuery('users', api.listUsers);
   const users = usersData || [];
-  const { range } = usePeriod();
+  const { range, onlyUpdated } = usePeriod();
 
   // Review-period summary (View mode): how many tasks got an update in the window.
   const periodStats = useMemo(() => {
@@ -216,10 +216,10 @@ export default function ProjectDetail({ projectId, initialMode = 'view', onNavig
   }
   const taskVisible = (t) => statusAllSelected || statuses.has(t.status);
 
-  // Review view (post-v1): milestones are collapsible (View mode), and a switch
-  // narrows the page to only what got an update inside the active review period.
-  // Both are pure view concerns and depend on the existing `range` + `inRange`.
-  const [onlyUpdated, setOnlyUpdated] = useState(false);
+  // Review view (post-v1): milestones are collapsible (View mode); the top-bar
+  // "Only updated" switch (global, via PeriodContext) narrows the page to what got
+  // an update inside the active review period. Pure view concerns keyed off the
+  // existing `range` + `inRange`.
   const [expandedIds, setExpandedIds] = useState(() => new Set()); // collapsed by default
   const periodActive = !!range;
   const onlyUpdatedActive = onlyUpdated && periodActive;
@@ -244,20 +244,21 @@ export default function ProjectDetail({ projectId, initialMode = 'view', onNavig
     });
   }
 
-  // Turning the switch OFF collapses everything back to the header-only default;
-  // turning it ON hands off to the auto-expand effect below.
-  function toggleOnlyUpdated() {
-    setOnlyUpdated((v) => {
-      if (v) setExpandedIds(new Set());
-      return !v;
-    });
-  }
-
-  // While the switch is on, auto-expand exactly the milestones (and the project
-  // group) that have an in-period update, and collapse the rest. Re-runs when the
-  // period or data changes so the expansion always tracks the highlighted set.
+  // Auto-expand driven by the DATE SELECTOR (not the switch): as soon as a review
+  // window is active, open every milestone (and the project group) that has an
+  // in-period update, so a reviewer sees the updates without a click; milestones
+  // with nothing new stay collapsed. Selecting "All" collapses back to the
+  // header-only default. Keyed off the window so manual expand/collapse while
+  // browsing under "All" isn't clobbered by a background data refresh.
+  const hadRange = useRef(false);
   useEffect(() => {
-    if (!onlyUpdated || !range || !data) return;
+    if (!data) return;
+    if (!range) {
+      if (hadRange.current) setExpandedIds(new Set()); // collapse once on leaving a window
+      hadRange.current = false;
+      return;
+    }
+    hadRange.current = true;
     const has = (t) => (t.updates || []).some((u) => inRange(u.created_at, range));
     const ids = new Set();
     for (const m of data.milestones || []) {
@@ -265,16 +266,7 @@ export default function ProjectDetail({ projectId, initialMode = 'view', onNavig
     }
     if ((data.projectTasks || []).some((t) => !t.archived_at && has(t))) ids.add(PROJECT_TASKS_KEY);
     setExpandedIds(ids);
-  }, [onlyUpdated, range, data]);
-
-  // The switch is meaningless without a window: if the period drops to "All"
-  // while it's on, switch it off and reset to the collapsed default.
-  useEffect(() => {
-    if (!range && onlyUpdated) {
-      setOnlyUpdated(false);
-      setExpandedIds(new Set());
-    }
-  }, [range, onlyUpdated]);
+  }, [range, data]);
 
   // Breadcrumb (§7.1): the "Project Tracker" brand in the top bar is the home
   // link, so the title is just [parent /] current project name.
@@ -350,6 +342,17 @@ export default function ProjectDetail({ projectId, initialMode = 'view', onNavig
             <SummaryEditor project={project} users={users} reload={reload} />
           ) : (
             <>
+              {/* Review-period summary — the "Only updated" switch itself lives in
+                  the top bar (global). Milestones with an in-period update
+                  auto-expand regardless of the switch. */}
+              {periodStats && (
+                <p className="period-summary">
+                  {periodStats.tasks === 0
+                    ? 'No task updates in the selected period.'
+                    : `${periodStats.tasks} ${periodStats.tasks === 1 ? 'task' : 'tasks'} updated · ${periodStats.updates} ${periodStats.updates === 1 ? 'update' : 'updates'} in the selected period.`}
+                </p>
+              )}
+
               {/* Summary band (§10.2) — objective lives inside this white card. */}
               <section className="summary-band">
                 <h1 className="summary-name">{project.name}</h1>
@@ -427,35 +430,6 @@ export default function ProjectDetail({ projectId, initialMode = 'view', onNavig
                 )}
               </div>
 
-              {/* "Show only updated" switch — active only with a review window
-                  (disabled under "All", where "updated in the period" is undefined). */}
-              <div className="review-controls">
-                <label
-                  className={`review-switch ${periodActive ? '' : 'disabled'}`}
-                  title={periodActive ? undefined : 'Pick “This week” or a custom date range to filter'}
-                >
-                  <input
-                    type="checkbox"
-                    role="switch"
-                    checked={onlyUpdatedActive}
-                    disabled={!periodActive}
-                    onChange={toggleOnlyUpdated}
-                  />
-                  <span className="review-switch-track" aria-hidden="true">
-                    <span className="review-switch-knob" />
-                  </span>
-                  <span className="review-switch-label">Show only tasks updated in this period</span>
-                </label>
-              </div>
-
-              {/* Review-period summary — only when a window is active. */}
-              {periodStats && (
-                <p className="period-summary">
-                  {periodStats.tasks === 0
-                    ? 'No task updates in the selected period.'
-                    : `${periodStats.tasks} ${periodStats.tasks === 1 ? 'task' : 'tasks'} updated · ${periodStats.updates} ${periodStats.updates === 1 ? 'update' : 'updates'} in the selected period.`}
-                </p>
-              )}
             </>
           )}
 

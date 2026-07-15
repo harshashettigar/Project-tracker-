@@ -11,6 +11,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
 const KEY = 'pt.reviewPeriod';
+const ONLY_KEY = 'pt.onlyUpdated';
 const DEFAULT = { mode: 'all' };
 
 function load() {
@@ -24,6 +25,14 @@ function load() {
     /* ignore malformed storage */
   }
   return DEFAULT;
+}
+
+function loadOnlyUpdated() {
+  try {
+    return localStorage.getItem(ONLY_KEY) === '1';
+  } catch {
+    return false;
+  }
 }
 
 // Monday 00:00 (local) of the week containing `now`.
@@ -61,6 +70,9 @@ const PeriodContext = createContext(null);
 
 export function PeriodProvider({ children }) {
   const [period, setPeriod] = useState(load);
+  // "Show only updated" is part of the review period: global + sticky, so the
+  // top-bar switch works the same way (and persists) across the whole product.
+  const [onlyUpdated, setOnlyUpdated] = useState(loadOnlyUpdated);
 
   useEffect(() => {
     try {
@@ -70,11 +82,36 @@ export function PeriodProvider({ children }) {
     }
   }, [period]);
 
+  useEffect(() => {
+    try {
+      localStorage.setItem(ONLY_KEY, onlyUpdated ? '1' : '0');
+    } catch {
+      /* non-fatal */
+    }
+  }, [onlyUpdated]);
+
   const range = useMemo(() => computeRange(period), [period]);
-  const value = useMemo(() => ({ period, setPeriod, range }), [period, range]);
+
+  // The switch is meaningless without a window: drop it when the period is "All".
+  useEffect(() => {
+    if (!range && onlyUpdated) setOnlyUpdated(false);
+  }, [range, onlyUpdated]);
+
+  const value = useMemo(
+    () => ({ period, setPeriod, range, onlyUpdated, setOnlyUpdated }),
+    [period, range, onlyUpdated],
+  );
   return <PeriodContext.Provider value={value}>{children}</PeriodContext.Provider>;
 }
 
 export function usePeriod() {
-  return useContext(PeriodContext) ?? { period: DEFAULT, setPeriod: () => {}, range: null };
+  return (
+    useContext(PeriodContext) ?? {
+      period: DEFAULT,
+      setPeriod: () => {},
+      range: null,
+      onlyUpdated: false,
+      setOnlyUpdated: () => {},
+    }
+  );
 }
