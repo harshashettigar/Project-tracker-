@@ -35,9 +35,15 @@ export default function TaskUpdateThread({ updates, range = null }) {
   const inTop = new Set(top.map((u) => u.id));
   const rest = updates.filter((u) => !inTop.has(u.id));
 
-  const topLabel = top.length > 1 ? 'Updates this period' : 'Latest update';
-  // When there's no highlight, the first "rest" entry IS the latest — label it so.
-  const restLeadLabel = top.length > 0 ? 'Previous update' : 'Latest update';
+  // Recency labels are about time, NOT about the review window: the single newest
+  // update overall is always "Latest update" wherever it sits, and everything
+  // older is "Previous update". The window only controls the amber HIGHLIGHT
+  // (top). This prevents the inversion where an in-window update that isn't the
+  // newest got called "Latest" while a newer, out-of-window update was called
+  // "Previous". (updates is newest-first, so updates[0] is the latest.)
+  const latestId = updates[0].id;
+  const recencyLabel = (u) => (u.id === latestId ? 'Latest update' : 'Previous update');
+  const topLabel = range ? 'Updated in this period' : 'Latest update';
   const canToggle = rest.length > 1;
 
   const HistoryToggle = () => (
@@ -80,7 +86,7 @@ export default function TaskUpdateThread({ updates, range = null }) {
       {rest.length > 0 && !showHistory && (
         <div className="update previous">
           <div className="update-top">
-            <span className="update-label">{restLeadLabel}</span>
+            <span className="update-label">{recencyLabel(rest[0])}</span>
             {top.length === 0 && canToggle && <HistoryToggle />}
           </div>
           <div className="update-body">{rest[0].body}</div>
@@ -99,7 +105,7 @@ export default function TaskUpdateThread({ updates, range = null }) {
         <div className="update-history">
           {rest.map((u) => (
             <div className="update previous" key={u.id}>
-              <span className="update-label">Previous update</span>
+              <span className="update-label">{recencyLabel(u)}</span>
               <div className="update-body">{u.body}</div>
               <div className="update-meta">
                 <span className="update-author">{u.author_name ?? 'Unknown'}</span>

@@ -3,7 +3,7 @@
 > **Read this first, write it last.** It is the handoff between sessions.
 > Keep it short. Move durable facts to `CLAUDE.md`; keep only what's moving here.
 
-**Last updated:** 2026-07-14 (review switch moved to top bar; auto-expand by date)
+**Last updated:** 2026-07-15 (update-label fix; "All" expands all milestones)
 **Current phase:** v1 + post-v1 live in production; dev runs on a separate Supabase project. All of today's work is **pushed + deployed**, including the **archive feature** (prod DB migration applied with `--prod` before its push) and **clickable column sorting** on the project list. No phase in flight.
 
 ---
@@ -143,6 +143,14 @@ _None queued._ v1 build order is complete. Candidate follow-ups if work continue
 
 ## Session log (newest first)
 
+- **2026-07-15 (post-v1, review-view fixes)** — client-only. (1) Fixed update-thread
+  recency labels: newest update is always "Latest update", older "Previous update";
+  the review window only drives the amber highlight ("Updated in this period"). Was
+  inverting when the window excluded the newest update. (2) Default expansion now
+  follows the date selector: "All" expands every milestone + project group (full
+  view); a window collapses to review mode, auto-expanding only milestones with an
+  in-period update (keyed per-period so manual toggles survive data refreshes).
+  Verified in-browser across All / This week / custom-excluding-newest.
 - **2026-07-14 (post-v1, review switch → top bar)** — Follow-up to the review view,
   client-only. (1) The "Only updated" switch moved from the detail body to the
   TOP BAR beside the date selector — universal across the product: state now lives
