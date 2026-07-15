@@ -8,6 +8,7 @@ import { useAuth } from '../auth/AuthProvider.jsx';
 import { initials } from '../lib/format.js';
 import ChangePasswordModal from './ChangePasswordModal.jsx';
 import PeriodControl from './PeriodControl.jsx';
+import OnlyUpdatedToggle from './OnlyUpdatedToggle.jsx';
 
 // `title` overrides the default product title (e.g. the project-name breadcrumb
 // on detail screens, §7.1); omit it on the list/admin screens. `onAdmin`, when
@@ -90,6 +91,7 @@ export default function AppShell({
 
         <div className="topbar-center">
           <PeriodControl />
+          <OnlyUpdatedToggle />
         </div>
 
         <div className="topbar-right">
