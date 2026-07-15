@@ -244,27 +244,34 @@ export default function ProjectDetail({ projectId, initialMode = 'view', onNavig
     });
   }
 
-  // Auto-expand driven by the DATE SELECTOR (not the switch): as soon as a review
-  // window is active, open every milestone (and the project group) that has an
-  // in-period update, so a reviewer sees the updates without a click; milestones
-  // with nothing new stay collapsed. Selecting "All" collapses back to the
-  // header-only default. Keyed off the window so manual expand/collapse while
-  // browsing under "All" isn't clobbered by a background data refresh.
-  const hadRange = useRef(false);
+  // Default expansion is driven by the DATE SELECTOR (not the switch):
+  //  - "All" (no window) → show the full picture: every milestone + the project
+  //    group expanded.
+  //  - A window (This week / custom) → review mode: collapse, then auto-expand
+  //    only the milestones (and project group) that have an in-period update, so a
+  //    reviewer sees exactly what changed without a click.
+  // Applied once per period change (keyed below), so a manual expand/collapse
+  // isn't clobbered by a background data refresh while the period is unchanged.
+  const lastPeriodKey = useRef(null);
   useEffect(() => {
     if (!data) return;
-    if (!range) {
-      if (hadRange.current) setExpandedIds(new Set()); // collapse once on leaving a window
-      hadRange.current = false;
-      return;
-    }
-    hadRange.current = true;
-    const has = (t) => (t.updates || []).some((u) => inRange(u.created_at, range));
+    const key = range ? `${range.start.getTime()}-${range.end.getTime()}` : 'all';
+    if (lastPeriodKey.current === key) return; // same period → keep manual state
+    lastPeriodKey.current = key;
+
     const ids = new Set();
-    for (const m of data.milestones || []) {
-      if (!m.archived_at && m.tasks.some((t) => !t.archived_at && has(t))) ids.add(m.id);
+    if (!range) {
+      // "All": expand everything.
+      for (const m of data.milestones || []) if (!m.archived_at) ids.add(m.id);
+      ids.add(PROJECT_TASKS_KEY);
+    } else {
+      // Window: expand only what has an in-period update.
+      const has = (t) => (t.updates || []).some((u) => inRange(u.created_at, range));
+      for (const m of data.milestones || []) {
+        if (!m.archived_at && m.tasks.some((t) => !t.archived_at && has(t))) ids.add(m.id);
+      }
+      if ((data.projectTasks || []).some((t) => !t.archived_at && has(t))) ids.add(PROJECT_TASKS_KEY);
     }
-    if ((data.projectTasks || []).some((t) => !t.archived_at && has(t))) ids.add(PROJECT_TASKS_KEY);
     setExpandedIds(ids);
   }, [range, data]);
 
